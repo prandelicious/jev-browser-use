@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { run } from '../skills/jev-browser-use/bridge.mjs';
 
 const fixture = await readFile(new URL('./fixtures/agoda-property.ax.txt', import.meta.url), 'utf8');
+const genericFixture = await readFile(new URL('./fixtures/generic-property.ax.txt', import.meta.url), 'utf8');
 const origin = 'https://www.agoda.com';
 const goal = 'Find room size and child age policy';
 
@@ -65,7 +66,8 @@ test('run sends compact projected state and executes the raw action index', asyn
   assert.match(bodies[0].state.browser, /^41 tab Rooms$/m);
   assert.match(bodies[0].state.browser, /^Browser tab: Agoda \(origin https:\/\/www\.agoda\.com\)\.$/m);
   assert.ok(outcome.metrics.projectedChars < outcome.metrics.rawChars);
-  assert.equal(outcome.metrics.projectionMode, 'origin-minimized');
+  assert.equal(outcome.metrics.projectionMode, 'evidence-lanes');
+  assert.equal(outcome.metrics.projectionAdapter, 'agoda-property-v1');
   assert.equal(outcome.metrics.active, true);
 });
 
@@ -108,7 +110,7 @@ test('a recognized Agoda run keeps origin-minimized evidence after a state chang
   assert.doesNotMatch(bodies[0].state.browser, /footer noise/);
   assert.doesNotMatch(bodies[1].state.browser, /footer noise/);
   assert.match(bodies[1].state.browser, /Children 0-5 years old/);
-  assert.equal(outcome.metrics.projectionMode, 'origin-minimized');
+  assert.equal(outcome.metrics.projectionMode, 'evidence-lanes');
 });
 
 test('an omitted raw line changing between decision and refresh prevents a click', async () => {
@@ -179,7 +181,7 @@ test('cache write failures do not prevent a decision and expose only safe metric
 });
 
 test('unknown routes use exact raw state without cache activation', async () => {
-  const raw = 'Browser tab: Example URL: "https://example.com/foo".\n1 tab Test';
+  const raw = 'Browser tab: Example URL: "http://example.com/foo".\n1 tab Test';
   const env = await envFile();
   const bodies = [];
   const tab = tabFor([raw, raw]);
@@ -187,8 +189,30 @@ test('unknown routes use exact raw state without cache activation', async () => 
     bodies.push(JSON.parse(options.body));
     return response('DONE');
   }, () => run(tab, {
-    goal: 'show test', controls: [{op:'click', name:'Test'}], allowedOrigins: ['https://example.com'], envFile: env, maxSteps: 1,
+    goal: 'show test', controls: [{op:'click', name:'Test'}], allowedOrigins: ['http://example.com'], envFile: env, maxSteps: 1,
   }));
   assert.equal(outcome.metrics.active, false);
   assert.equal(bodies[0].state.browser, raw);
+});
+
+test('generic HTTPS routes use evidence lanes without profile cache I/O', async () => {
+  const env = await envFile();
+  const cachePath = join(await tempDir(), 'not-a-directory');
+  await writeFile(cachePath, 'blocked');
+  const bodies = [];
+  const tab = tabFor([genericFixture, genericFixture]);
+  const outcome = await withFetch(async (_url, options) => {
+    bodies.push(JSON.parse(options.body));
+    return response('DONE');
+  }, () => run(tab, {
+    goal: 'Find room size and children age policy', controls: [{op:'click', name:'Book now'}], allowedOrigins: ['https://stay.example.test'], envFile: env,
+    profileCacheDir: cachePath, maxSteps: 1,
+  }));
+  assert.match(bodies[0].state.browser, /^Browser tab: Example \(origin https:\/\/stay\.example\.test\)\.$/m);
+  assert.match(bodies[0].state.browser, /^2 button Book now$/m);
+  assert.doesNotMatch(bodies[0].state.browser, /footer noise|checkin=|Credentials/);
+  assert.equal(outcome.metrics.projectionAdapter, 'generic-origin-v1');
+  assert.equal(outcome.metrics.projectionMode, 'evidence-lanes');
+  assert.equal(outcome.metrics.cacheRead, 'disabled');
+  assert.equal(outcome.metrics.cacheWrite, 'disabled');
 });

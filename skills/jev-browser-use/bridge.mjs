@@ -3,6 +3,7 @@ import { parseEnv } from 'node:util';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { loadProfile, mergeObservedTerms, profileKey, projectIncrementalState, saveProfile, seedProfile } from './profile-cache.mjs';
+import { selectProjectionAdapter } from './projection-adapters.mjs';
 
 export async function loadConfig() {
   return JSON.parse(await readFile(join(homedir(), '.config', 'jev-browser-use', 'config.json'), 'utf8'));
@@ -41,7 +42,7 @@ function matchesPattern(name, pattern) {
 }
 
 function checkOrigin(snapshot, allowedOrigins) {
-  const url = snapshot.match(/^Browser tab:.* URL: "([^"]+)"\./m)?.[1];
+  const url = snapshot.match(/^Browser tab:.*?\bURL: "([^"]+)"\)?\./m)?.[1];
   let origin;
   try { origin = new URL(url).origin; } catch { throw new Error('Cannot verify browser origin'); }
   if (!allowedOrigins.includes(origin)) throw new Error('Browser left authorized origins');
@@ -51,18 +52,24 @@ function checkDecisionState(snapshot) {
   if (snapshot.length > 24000) throw new Error('Snapshot too large; narrow the task');
 }
 
-function emptyProfileMetrics(rawChars, active = false, family = null) {
-  return {active, family, cacheHit:false, cacheRead:active ? 'miss' : 'disabled', cacheWrite:active ? 'pending' : 'disabled', rawChars, projectedChars:rawChars, projectionMs:0, projectionMode:active ? 'origin-minimized' : 'raw', stateMode:active ? 'full' : 'raw', fullProjectedChars:rawChars, deltaAddedChars:0, deltaRemovedChars:0};
+function emptyProfileMetrics(rawChars, active = false, family = null, projectionAdapter = active ? 'agoda-property-v1' : 'raw') {
+  return {active, family, projectionAdapter, cacheHit:false, cacheRead:active ? 'miss' : 'disabled', cacheWrite:active ? 'pending' : 'disabled', rawChars, projectedChars:rawChars, projectionMs:0, projectionMode:active ? 'evidence-lanes' : 'raw', stateMode:active ? 'full' : 'raw', fullProjectedChars:rawChars, deltaAddedChars:0, deltaRemovedChars:0};
 }
 
 export async function prepareDecisionState(rawState, {goal, actions, previousRawState = null, profileCacheDir, profileCacheEnabled = true, incrementalStateEnabled = true, incrementalStateMaxRatio = 0.65, projectionMode = 'origin-minimized', now = new Date()} = {}) {
   const rawChars = rawState.length;
-  const key = profileKey(rawState);
-  if (!key) return {decisionState:rawState, profile:null, metrics:emptyProfileMetrics(rawChars)};
+  const adapter = selectProjectionAdapter(rawState);
+  const key = adapter.cacheFamily === 'agoda-property-v1' ? profileKey(rawState) : null;
+  if (adapter.id === 'raw') return {decisionState:rawState, profile:null, metrics:emptyProfileMetrics(rawChars)};
+  if (adapter.cacheFamily === null) {
+    const startedAt = performance.now();
+    const decisionState = adapter.project(rawState, {goal, actions, maxChars:20000});
+    return {decisionState, profile:null, metrics:{...emptyProfileMetrics(rawChars, false, null, adapter.id), projectedChars:decisionState.length, projectionMs:Math.round(performance.now() - startedAt), projectionMode:'evidence-lanes', stateMode:'full', fullProjectedChars:decisionState.length}};
+  }
   const startedAt = performance.now();
   const family = 'agoda-property-v1';
   let profile;
-  const metrics = {active:true, family, cacheHit:false, cacheRead:'disabled', cacheWrite:'disabled', rawChars, projectedChars:rawChars, projectionMs:0, projectionMode, stateMode:'full', fullProjectedChars:rawChars, deltaAddedChars:0, deltaRemovedChars:0};
+  const metrics = {active:true, family, projectionAdapter:adapter.id, cacheHit:false, cacheRead:'disabled', cacheWrite:'disabled', rawChars, projectedChars:rawChars, projectionMs:0, projectionMode:'evidence-lanes', stateMode:'full', fullProjectedChars:rawChars, deltaAddedChars:0, deltaRemovedChars:0};
   if (profileCacheEnabled) {
     const loaded = await loadProfile(key, {cacheDir:profileCacheDir, now});
     metrics.cacheHit = loaded.hit;
@@ -85,6 +92,7 @@ export async function prepareDecisionState(rawState, {goal, actions, previousRaw
     maxRatio:incrementalStateMaxRatio,
     projectionMode,
     maxChars:20000,
+    projector: (snapshot, options) => adapter.project(snapshot, options),
   });
   const decisionState = projected.state;
   metrics.stateMode = projected.mode;

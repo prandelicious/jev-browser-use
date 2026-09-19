@@ -295,10 +295,11 @@ export function projectIncrementalState(currentSnapshot, previousSnapshot, {
   enabled = true,
   maxRatio = 0.65,
   projectionMode = 'full',
+  projector = null,
 } = {}) {
   if (typeof currentSnapshot !== 'string' || (previousSnapshot !== null && typeof previousSnapshot !== 'string')) throw new Error('Invalid incremental state input');
   if (!Number.isFinite(maxRatio) || maxRatio < 0.1 || maxRatio > 1) throw new Error('Invalid incremental state ratio');
-  const project = projectionMode === 'origin-minimized' ? projectOriginMinimizedState : projectState;
+  const project = projector ?? (projectionMode === 'origin-minimized' ? projectOriginMinimizedState : projectState);
   if (projectionMode !== 'full' && projectionMode !== 'origin-minimized') throw new Error('Invalid projection mode');
   const full = project(currentSnapshot, {goal, actions, profile, maxChars});
   const fullProjectedChars = full.length;
