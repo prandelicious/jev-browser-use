@@ -9,6 +9,8 @@ export const MAX_PROFILE_BYTES = 8192;
 export const PROFILE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 const DEFAULT_CACHE_DIR = join(homedir(), '.cache', 'jev-browser-use', 'profiles');
+const RUNTIME_PID = globalThis.process?.pid ?? 0;
+const RUNTIME_PLATFORM = globalThis.process?.platform ?? 'unknown';
 const VOCABULARY = [
   'overview', 'rooms', 'room', 'room size', 'bed', 'beds', 'facilities',
   'reviews', 'location', 'policies', 'property policies', 'children',
@@ -116,12 +118,12 @@ export async function saveProfile(key, profile, options = {}) {
   const valid = validateProfile(profile, now);
   if (!valid) return { written: false, reason: 'invalid_profile' };
   const cacheDir = options.cacheDir ?? DEFAULT_CACHE_DIR;
-  const temp = join(cacheDir, `${key}.${process.pid}.${randomUUID()}.tmp`);
+  const temp = join(cacheDir, `${key}.${RUNTIME_PID}.${randomUUID()}.tmp`);
   try {
     await mkdir(cacheDir, {recursive: true, mode: 0o700});
-    if (process.platform !== 'win32') await chmod(cacheDir, 0o700);
+    if (RUNTIME_PLATFORM !== 'win32') await chmod(cacheDir, 0o700);
     await writeFile(temp, `${JSON.stringify(valid)}\n`, {flag: 'wx', mode: 0o600});
-    if (process.platform !== 'win32') await chmod(temp, 0o600);
+    if (RUNTIME_PLATFORM !== 'win32') await chmod(temp, 0o600);
     await rename(temp, cachePath(cacheDir, key));
     return { written: true };
   } catch (error) {
