@@ -42,6 +42,13 @@ The adapter reads `OPENROUTER_API_KEY` (lowercase `openrouter_api_key` is also a
 
 ## Shared behavior
 
+The bridge sends a bounded site-agnostic structured JSON decision state to Jev.
+The default state budget is 16,000 UTF-8 bytes. Raw accessibility state remains
+local and authoritative for origin, freshness, action mapping, execution, and
+verification. Legacy profile and incremental options are accepted but inert for
+one migration release; the TypeSafe endpoint, authentication, model, timeout,
+and response validation contracts are unchanged.
+
 - Both adapters use Bearer authentication, reject redirects, validate the returned choice schema, confidence, probabilities, and model identity, and keep credentials out of the decision body.
 - A transport failure may be retried once within the same bounded run using the same adapter and model. Authentication, schema, and quota failures are not retried.
 - Missing credentials are configuration errors. Do not search unrelated files or silently switch adapters.

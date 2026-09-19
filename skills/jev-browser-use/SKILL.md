@@ -24,42 +24,18 @@ The intended scale boundary is action-heavy browser work. Keep navigation, expan
 
 ## Site-agnostic evidence projection
 
-The bridge selects an explicit projection adapter from the fresh raw snapshot. Evidence lanes are site-neutral: they send a compact origin-only header, exact permitted action lines, and direct goal evidence while leaving headings and containers out unless they are action lines. Generic HTTPS pages use the `generic-origin-v1` adapter, derive evidence patterns from the goal, and never enable persistent page-profile caching. Unsupported or non-HTTPS routes use the raw-state path without projection.
+Every turn reads the complete raw accessibility snapshot locally, normalizes it, and sends Jev only a bounded structured JSON decision state. The default budget is 16,000 UTF-8 bytes. The state contains page identity, ranked goal evidence, safe candidate IDs, and compact history; it excludes raw AX indices, credentials, cache paths, and executable page instructions. Choice criteria are exactly current candidate IDs plus `DONE`, `BLOCKED`, and `WAIT`.\n\nAdapters are enrichment-only metadata. Agoda contributes bounded hints for room size, child/bedding policy, occupancy, dates, and facilities; generic HTTPS has no site hints. Adapters cannot project, add executable actions, set budgets, or own safety policy. The core remains site-agnostic.\n\nBooking, reservation, room-selection, payment, and confirmation controls are excluded by default. Raw AX remains authoritative for origin, action discovery and indices, freshness equality, execution, and final verification. A candidate is resolved only through the current turn's map; removed or stale candidates cannot execute.\n\nLegacy profile and incremental options remain accepted for one migration release but are inert; the active bridge performs no cache I/O and sends no delta state.
 
 The `agoda-property-v1` adapter retains the existing Agoda vocabulary and structural profile behavior. The bridge can use a fail-open, user-level structural profile for HTTPS Agoda
 property-detail pages whose path matches the supported hotel-detail family. All
 matching pages share the fixed family `agoda-property-v1`; search pages, other
 sites, and unsupported routes use the existing raw-state path without cache I/O.
 
-Profiles are stored at `~/.cache/jev-browser-use/profiles` with owner-only
-permissions, a maximum file size of 8 KiB, and a 30-day TTL. The cache stores
-only schema metadata and code-allowlisted structural terms such as `rooms`,
-`room size`, `policies`, `children`, `age`, and `occupancy`. It never stores
-URLs, queries, property names, page snapshots, prices, availability, policies,
-typed text, history, or accessibility indices. Corrupt, expired, unreadable, or
-unwritable entries are cache misses; Jev still receives a safe projection when
-the cache cannot be read or written.
+The legacy profile module remains available for direct compatibility tests, but the active bridge never reads or writes it.
 
-For recognized pages, the bridge learns allowlisted terms from the origin-validated raw snapshot and sends Jev the selected adapter's compact evidence-lane projection. It does not expand every cached structural term or neighboring line. Raw state remains authoritative for origin checks, action discovery and indices, stale-state equality, execution, and Codex's final verification. A projection failure hands control back without sending an oversized raw snapshot. `profileCacheEnabled: false` keeps evidence lanes enabled while disabling Agoda cache reads and writes.
+The active bridge performs no profile-cache I/O and sends no incremental delta. Legacy profile and incremental options remain accepted but inert for one migration release.
 
-Incremental state mode is enabled by default for each `run()` call. The first
-decision sends the compact projection. Later decisions may send an in-memory
-semantic delta containing current goal/action context plus relevant additions,
-changes, and removals. If the delta is not materially smaller, is ambiguous, or
-exceeds the model-input limit, the bridge automatically sends the full
-projection. The baseline is reset for every `run()` call and is never persisted.
-Set `incrementalStateEnabled: false` to force full projections, or adjust
-`incrementalStateMaxRatio` (default `0.65`, allowed range `0.1..1`) to control
-the size threshold.
-
-Each run exposes only count/timing metrics: `active`, `family`, `projectionAdapter` (`agoda-property-v1`, `generic-origin-v1`, or `raw`), `cacheHit`,
-`cacheRead`, `cacheWrite`, `rawChars`, `projectedChars`, `projectionMs`,
-`stateMode`, `fullProjectedChars`, `deltaAddedChars`, and
-`deltaRemovedChars`, and `projectionMode` (`evidence-lanes` or `raw`). `stateMode`
-is `raw` for unsupported routes and `full` or `delta` for recognized pages. These metrics never contain page text, URLs,
-cache paths, or history. A smaller projection or delta is a
-transport/input-size metric, not evidence that the requested page fact is
-correct; Codex must still verify the result independently.
+Metrics expose raw, normalized, and decision-state sizes; normalization, projection, API, and elapsed timings; decision turns; and aliases `projectedChars`, `fullProjectedChars`, `stateMode: structured`, and `projectionMode: semantic-json-v1`. Cache fields remain disabled aliases. These metrics never contain page text, URLs, cache paths, or history. Jev `DONE` is not verification; Codex must independently verify the result.
 
 ## Load the configured helper
 
