@@ -48,10 +48,24 @@ sending an oversized raw snapshot. `profileCacheEnabled: false` keeps the
 projection behavior but uses the cold seed profile and disables cache reads and
 writes.
 
-Each run exposes only these cache metrics: `active`, `family`, `cacheHit`,
-`cacheRead`, `cacheWrite`, `rawChars`, `projectedChars`, and `projectionMs`.
-A smaller projection is a transport/input-size metric, not evidence that the
-requested page fact is correct; Codex must still verify the result independently.
+Incremental state mode is enabled by default for each `run()` call. The first
+decision sends the compact projection. Later decisions may send an in-memory
+semantic delta containing current goal/action context plus relevant additions,
+changes, and removals. If the delta is not materially smaller, is ambiguous, or
+exceeds the model-input limit, the bridge automatically sends the full
+projection. The baseline is reset for every `run()` call and is never persisted.
+Set `incrementalStateEnabled: false` to force full projections, or adjust
+`incrementalStateMaxRatio` (default `0.65`, allowed range `0.1..1`) to control
+the size threshold.
+
+Each run exposes only count/timing metrics: `active`, `family`, `cacheHit`,
+`cacheRead`, `cacheWrite`, `rawChars`, `projectedChars`, `projectionMs`,
+`stateMode`, `fullProjectedChars`, `deltaAddedChars`, and
+`deltaRemovedChars`. `stateMode` is `raw` for unsupported routes and `full` or
+`delta` for recognized Agoda property pages. These metrics never contain page
+text, URLs, cache paths, or history. A smaller projection or delta is a
+transport/input-size metric, not evidence that the requested page fact is
+correct; Codex must still verify the result independently.
 
 ## Load the configured helper
 
