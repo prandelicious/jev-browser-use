@@ -200,7 +200,7 @@ export async function run(tab, {
     let prepared;
     try {
       prepared = await prepareDecisionState(rawState,{goal,actions,history, maxDecisionStateBytes,maxEvidenceItems,maxCandidates,maxItemChars,denyNames:policy?.denyNames});
-      runMetrics = {...runMetrics,...prepared.metrics,rawChars:rawState.length,decisionStateChars:prepared.metrics.decisionStateChars};
+      runMetrics = {...runMetrics,...prepared.metrics,rawChars:rawState.length,decisionStateChars:prepared.metrics.decisionStateChars,normalizationMs:runMetrics.normalizationMs + prepared.metrics.normalizationMs,projectionMs:runMetrics.projectionMs + prepared.metrics.projectionMs,apiMs:runMetrics.apiMs,decisionTurns:runMetrics.decisionTurns};
     } catch (error) {
       return finish('decision_error',history,rawState,{error:error instanceof Error ? error.message : 'Decision state preparation failed'});
     }

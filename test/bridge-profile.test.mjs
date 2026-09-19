@@ -89,6 +89,21 @@ test('metrics report sizes, phase timings, aliases, and decision turns', async (
   assert.equal(outcome.metrics.fullProjectedChars, outcome.metrics.decisionStateChars);
 });
 
+test('decision turns accumulate across stale-state retries', async () => {
+  const env = await envFile();
+  const changed = fixture.replace('footer noise 29', 'footer changed 29');
+  const tab = tabFor([fixture, changed, changed, changed]);
+  let calls = 0;
+  const outcome = await withFetch(async (_url, options) => {
+    const body = JSON.parse(options.body);
+    const keys = Object.keys(body.questions.next.criteria);
+    return response(calls++ === 0 ? 'a0' : 'DONE', keys);
+  }, () => run(tab, {goal, controls:[{op:'click',name:'Rooms'}], allowedOrigins:[origin], envFile:env, maxSteps:2}));
+  assert.equal(outcome.status, 'needs_verification');
+  assert.equal(outcome.metrics.decisionTurns, 2);
+  assert.ok(outcome.metrics.apiMs >= 0);
+});
+
 test('deprecated cache and incremental options are inert', async () => {
   const env = await envFile();
   const sentinel = join(await tempDir(), 'sentinel');
