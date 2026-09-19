@@ -22,9 +22,11 @@ Use this as the default first route for browser verification. Run the decision/a
 
 The intended scale boundary is action-heavy browser work. Keep navigation, expanding panels, clicking buttons, toggling controls, paging, and scrolling inside Jev's loop so Codex does not spend a model turn on each mechanical action. Hand control to Codex for text entry, visual or semantic judgment, unsupported widgets, consequential approval gates, and final verification.
 
-## Agoda structural profile cache
+## Site-agnostic evidence projection
 
-The bridge can use a fail-open, user-level structural profile for HTTPS Agoda
+The bridge selects an explicit projection adapter from the fresh raw snapshot. Evidence lanes are site-neutral: they send a compact origin-only header, exact permitted action lines, and direct goal evidence while leaving headings and containers out unless they are action lines. Generic HTTPS pages use the `generic-origin-v1` adapter, derive evidence patterns from the goal, and never enable persistent page-profile caching. Unsupported or non-HTTPS routes use the raw-state path without projection.
+
+The `agoda-property-v1` adapter retains the existing Agoda vocabulary and structural profile behavior. The bridge can use a fail-open, user-level structural profile for HTTPS Agoda
 property-detail pages whose path matches the supported hotel-detail family. All
 matching pages share the fixed family `agoda-property-v1`; search pages, other
 sites, and unsupported routes use the existing raw-state path without cache I/O.
@@ -38,15 +40,7 @@ typed text, history, or accessibility indices. Corrupt, expired, unreadable, or
 unwritable entries are cache misses; Jev still receives a safe projection when
 the cache cannot be read or written.
 
-For recognized pages, the bridge learns allowlisted terms from the
-origin-validated raw snapshot and sends Jev an origin-minimized evidence-lane
-projection containing a compact Agoda origin header, exact permitted action
-lines, and direct goal evidence. It does not expand every cached structural term
-or neighboring line. Raw state remains authoritative for origin checks, action
-discovery and indices, stale-state equality, execution, and Codex's final
-verification. A projection failure hands control back without sending an
-oversized raw snapshot. `profileCacheEnabled: false` keeps the projection
-behavior but uses the cold seed profile and disables cache reads and writes.
+For recognized pages, the bridge learns allowlisted terms from the origin-validated raw snapshot and sends Jev the selected adapter's compact evidence-lane projection. It does not expand every cached structural term or neighboring line. Raw state remains authoritative for origin checks, action discovery and indices, stale-state equality, execution, and Codex's final verification. A projection failure hands control back without sending an oversized raw snapshot. `profileCacheEnabled: false` keeps evidence lanes enabled while disabling Agoda cache reads and writes.
 
 Incremental state mode is enabled by default for each `run()` call. The first
 decision sends the compact projection. Later decisions may send an in-memory
@@ -58,13 +52,11 @@ Set `incrementalStateEnabled: false` to force full projections, or adjust
 `incrementalStateMaxRatio` (default `0.65`, allowed range `0.1..1`) to control
 the size threshold.
 
-Each run exposes only count/timing metrics: `active`, `family`, `cacheHit`,
+Each run exposes only count/timing metrics: `active`, `family`, `projectionAdapter` (`agoda-property-v1`, `generic-origin-v1`, or `raw`), `cacheHit`,
 `cacheRead`, `cacheWrite`, `rawChars`, `projectedChars`, `projectionMs`,
 `stateMode`, `fullProjectedChars`, `deltaAddedChars`, and
-`deltaRemovedChars`, and `projectionMode`. `stateMode` is `raw` for unsupported
-routes and `full` or `delta` for recognized Agoda property pages.
-`projectionMode` is `raw` for unsupported routes and `origin-minimized` for
-recognized Agoda property pages. These metrics never contain page text, URLs,
+`deltaRemovedChars`, and `projectionMode` (`evidence-lanes` or `raw`). `stateMode`
+is `raw` for unsupported routes and `full` or `delta` for recognized pages. These metrics never contain page text, URLs,
 cache paths, or history. A smaller projection or delta is a
 transport/input-size metric, not evidence that the requested page fact is
 correct; Codex must still verify the result independently.
