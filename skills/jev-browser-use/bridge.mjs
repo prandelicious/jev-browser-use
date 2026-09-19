@@ -23,7 +23,9 @@ function parseState(state) {
   return state.split('\n').map(line => line.trim()).map(line => line.match(/^(\d+) (text field|text area|combo box|radio button|menu item|[\w]+)(?: \([^)]*\))? (?:Description: )?(.*)$/)).filter(Boolean).map(match => ({index:Number(match[1]),role:match[2],name:match[3]}));
 }
 function controlNames(control) { return [control.name,...(control.aliases ?? [])].filter(name => typeof name === 'string' && name); }
-function matchesName(observed, expected) { return observed === expected || observed?.startsWith(expected + ', Value:'); }
+function matchesName(observed, expected) {
+  return observed === expected || observed?.startsWith(expected + ', Value:') || observed?.startsWith(expected + ', ID:');
+}
 function semanticName(name) { return name.replace(/, Value:.*$/, ''); }
 function matchesPattern(name, pattern) {
   if (pattern instanceof RegExp) { pattern.lastIndex = 0; return pattern.test(name); }

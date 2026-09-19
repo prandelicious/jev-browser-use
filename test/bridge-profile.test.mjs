@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { run } from '../skills/jev-browser-use/bridge.mjs';
+import { availableActions, run } from '../skills/jev-browser-use/bridge.mjs';
 
 const fixture = await readFile(new URL('./fixtures/agoda-property.ax.txt', import.meta.url), 'utf8');
 const denseFixture = await readFile(new URL('./fixtures/agoda-dense-property.ax.txt', import.meta.url), 'utf8');
@@ -49,6 +49,19 @@ test('run sends structured state and executes the same-turn raw candidate', asyn
   assert.equal(outcome.status, 'step_limit');
   assert.equal(outcome.metrics.stateMode, 'structured');
   assert.equal(outcome.metrics.projectionMode, 'semantic-json-v1');
+});
+
+test('availableActions matches CUA Rooms and FAQ names before metadata suffixes', () => {
+  const state = [
+    'Browser tab: 14, Title: "IDEAL FUKUSHIMA", URL: "https://www.agoda.com/ideal-fukushima-h8834111/hotel/osaka-jp.html".',
+    '221 link Description: Rooms, ID: property-dateless-roomgrid-tab-2',
+    "546 button (collapsed) What are the property's policies for children's bedding at IDEAL FUKUSHIMA?, ID: property-faq-12",
+  ].join('\n');
+  const actions = availableActions(state, [
+    {op:'click', name:'Rooms'},
+    {op:'click', name:"What are the property's policies for children's bedding at IDEAL FUKUSHIMA?"},
+  ]);
+  assert.deepEqual(actions.map(action => action.index), [221, 546]);
 });
 
 test('dense state reaches mocked Jev without leaking consequential controls', async () => {
