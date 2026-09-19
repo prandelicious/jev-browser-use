@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { parseEnv } from 'node:util';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { loadProfile, mergeObservedTerms, profileKey, projectState, saveProfile, seedProfile } from './profile-cache.mjs';
+import { loadProfile, mergeObservedTerms, profileKey, projectIncrementalState, saveProfile, seedProfile } from './profile-cache.mjs';
 
 export async function loadConfig() {
   return JSON.parse(await readFile(join(homedir(), '.config', 'jev-browser-use', 'config.json'), 'utf8'));
@@ -52,17 +52,17 @@ function checkDecisionState(snapshot) {
 }
 
 function emptyProfileMetrics(rawChars, active = false, family = null) {
-  return {active, family, cacheHit:false, cacheRead:active ? 'miss' : 'disabled', cacheWrite:active ? 'pending' : 'disabled', rawChars, projectedChars:rawChars, projectionMs:0};
+  return {active, family, cacheHit:false, cacheRead:active ? 'miss' : 'disabled', cacheWrite:active ? 'pending' : 'disabled', rawChars, projectedChars:rawChars, projectionMs:0, stateMode:active ? 'full' : 'raw', fullProjectedChars:rawChars, deltaAddedChars:0, deltaRemovedChars:0};
 }
 
-export async function prepareDecisionState(rawState, {goal, actions, profileCacheDir, profileCacheEnabled = true, now = new Date()} = {}) {
+export async function prepareDecisionState(rawState, {goal, actions, previousRawState = null, profileCacheDir, profileCacheEnabled = true, incrementalStateEnabled = true, incrementalStateMaxRatio = 0.65, now = new Date()} = {}) {
   const rawChars = rawState.length;
   const key = profileKey(rawState);
   if (!key) return {decisionState:rawState, profile:null, metrics:emptyProfileMetrics(rawChars)};
   const startedAt = performance.now();
   const family = 'agoda-property-v1';
   let profile;
-  const metrics = {active:true, family, cacheHit:false, cacheRead:'disabled', cacheWrite:'disabled', rawChars, projectedChars:rawChars, projectionMs:0};
+  const metrics = {active:true, family, cacheHit:false, cacheRead:'disabled', cacheWrite:'disabled', rawChars, projectedChars:rawChars, projectionMs:0, stateMode:'full', fullProjectedChars:rawChars, deltaAddedChars:0, deltaRemovedChars:0};
   if (profileCacheEnabled) {
     const loaded = await loadProfile(key, {cacheDir:profileCacheDir, now});
     metrics.cacheHit = loaded.hit;
@@ -77,7 +77,19 @@ export async function prepareDecisionState(rawState, {goal, actions, profileCach
       metrics.cacheWrite = saved.written ? 'written' : 'failed';
     } else metrics.cacheWrite = 'unchanged';
   }
-  const decisionState = projectState(rawState, {goal, actions, profile:merged, maxChars:20000});
+  const projected = projectIncrementalState(rawState, previousRawState, {
+    goal,
+    actions,
+    profile:merged,
+    enabled:incrementalStateEnabled,
+    maxRatio:incrementalStateMaxRatio,
+    maxChars:20000,
+  });
+  const decisionState = projected.state;
+  metrics.stateMode = projected.mode;
+  metrics.fullProjectedChars = projected.fullProjectedChars;
+  metrics.deltaAddedChars = projected.deltaAddedChars;
+  metrics.deltaRemovedChars = projected.deltaRemovedChars;
   metrics.projectedChars = decisionState.length;
   metrics.projectionMs = Math.round(performance.now() - startedAt);
   return {decisionState, profile:merged, metrics};
@@ -198,12 +210,13 @@ function result(status,history,state,startedAt,details={}) {
 }
 
 // This accepts only an already-authorized cua_repl tab, never opens a browser.
-export async function run(tab,{goal,controls=[],policy,envFile,provider,model,allowedOrigins,maxSteps=10,minConfidence=0.55,maxMs=45000,decisionTimeoutMs=20000,maxDecisionRetries=1,waitPollMs=750,profileCacheDir,profileCacheEnabled=true},prior=[]) {
-  if (typeof goal !== 'string' || !goal || !Array.isArray(controls) || (!controls.length && !policy) || controls.some(control => !validateControl(control)) || !Number.isInteger(maxSteps) || maxSteps < 1 || maxSteps > 30 || !Number.isFinite(maxMs) || maxMs < 1 || maxMs > 45000 || !Number.isFinite(decisionTimeoutMs) || decisionTimeoutMs < 1000 || decisionTimeoutMs > 30000 || !Number.isInteger(maxDecisionRetries) || maxDecisionRetries < 0 || maxDecisionRetries > 2 || !Number.isFinite(minConfidence) || minConfidence < 0.55 || minConfidence > 1 || !Number.isFinite(waitPollMs) || waitPollMs < 100 || waitPollMs > 5000 || !Array.isArray(allowedOrigins) || !allowedOrigins.length) throw new Error('Invalid task contract');
+export async function run(tab,{goal,controls=[],policy,envFile,provider,model,allowedOrigins,maxSteps=10,minConfidence=0.55,maxMs=45000,decisionTimeoutMs=20000,maxDecisionRetries=1,waitPollMs=750,profileCacheDir,profileCacheEnabled=true,incrementalStateEnabled=true,incrementalStateMaxRatio=0.65},prior=[]) {
+  if (typeof goal !== 'string' || !goal || !Array.isArray(controls) || (!controls.length && !policy) || controls.some(control => !validateControl(control)) || !Number.isInteger(maxSteps) || maxSteps < 1 || maxSteps > 30 || !Number.isFinite(maxMs) || maxMs < 1 || maxMs > 45000 || !Number.isFinite(decisionTimeoutMs) || decisionTimeoutMs < 1000 || decisionTimeoutMs > 30000 || !Number.isInteger(maxDecisionRetries) || maxDecisionRetries < 0 || maxDecisionRetries > 2 || !Number.isFinite(minConfidence) || minConfidence < 0.55 || minConfidence > 1 || !Number.isFinite(waitPollMs) || waitPollMs < 100 || waitPollMs > 5000 || typeof incrementalStateEnabled !== 'boolean' || !Number.isFinite(incrementalStateMaxRatio) || incrementalStateMaxRatio < 0.1 || incrementalStateMaxRatio > 1 || !Array.isArray(allowedOrigins) || !allowedOrigins.length) throw new Error('Invalid task contract');
   const history = [...prior];
   const startedAt = performance.now();
   let waits = 0;
   let decisionRetries = 0;
+  let previousRawState = null;
   let rawState = await tab.getAXState({emit:false,disableDiffing:true});
   let metrics = emptyProfileMetrics(rawState.length);
   const runResult = (status, resultHistory, resultState, details={}) => result(status,resultHistory,resultState,startedAt,{metrics,...details});
@@ -216,10 +229,11 @@ export async function run(tab,{goal,controls=[],policy,envFile,provider,model,al
     });
     let decisionState;
     try {
-      const prepared = await prepareDecisionState(rawState,{goal,actions,profileCacheDir,profileCacheEnabled});
+      const prepared = await prepareDecisionState(rawState,{goal,actions,previousRawState,profileCacheDir,profileCacheEnabled,incrementalStateEnabled,incrementalStateMaxRatio});
       decisionState = prepared.decisionState;
       metrics = prepared.metrics;
       checkDecisionState(decisionState);
+      previousRawState = rawState;
     } catch (error) {
       return runResult('decision_error',history,rawState,{error:error instanceof Error ? error.message : 'Decision state preparation failed'});
     }
@@ -235,6 +249,7 @@ export async function run(tab,{goal,controls=[],policy,envFile,provider,model,al
         decisionRetries += 1;
         rawState = await tab.getAXState({emit:false,disableDiffing:true});
         checkOrigin(rawState,allowedOrigins);
+        previousRawState = null;
         step -= 1;
         continue;
       }

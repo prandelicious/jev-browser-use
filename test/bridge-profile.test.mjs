@@ -84,16 +84,75 @@ test('a warm run reads the same family profile as a cache hit', async () => {
   assert.equal(warm.metrics.cacheRead, 'hit');
 });
 
+test('a small relevant change uses a semantic delta after the first decision', async () => {
+  const cacheDir = await tempDir();
+  const env = await envFile();
+  const expanded = `${fixture}\n${Array.from({length:40}, (_, index) => `${1000 + index} text footer noise ${index}\n${2000 + index} text Room size: ${index + 1} m²\n${3000 + index} text footer noise ${index + 40}`).join('\n')}`;
+  const changed = expanded.replace('Children 0-6 years old', 'Children 0-5 years old');
+  const bodies = [];
+  const tab = tabFor([expanded, expanded, changed, changed, changed]);
+  const outcome = await withFetch(async (_url, options) => {
+    bodies.push(JSON.parse(options.body));
+    return response(bodies.length === 1 ? 'a0' : 'DONE');
+  }, () => run(tab, {
+    goal,
+    controls: [{op:'click', name:'Rooms'}],
+    allowedOrigins: [origin],
+    envFile: env,
+    profileCacheDir: cacheDir,
+    maxSteps: 2,
+  }));
+  assert.equal(bodies.length, 2);
+  assert.ok(bodies[1].state.browser.length < bodies[0].state.browser.length);
+  assert.equal(outcome.metrics.stateMode, 'delta');
+  assert.equal(outcome.metrics.fullProjectedChars > outcome.metrics.projectedChars, true);
+});
+
 test('an omitted raw line changing between decision and refresh prevents a click', async () => {
   const env = await envFile();
   const changed = fixture.replace('footer noise 29', 'footer changed 29');
   const tab = tabFor([fixture, changed]);
   const outcome = await withFetch(async () => response('a0'), () => run(tab, {
     goal, controls: [{op:'click', name:'Rooms'}], allowedOrigins: [origin], envFile: env,
-    profileCacheEnabled: false, maxSteps: 1,
+    profileCacheEnabled: false, incrementalStateEnabled: true, maxSteps: 1,
   }));
   assert.deepEqual(tab.clicks, []);
   assert.equal(outcome.history.at(-1).reason, 'stale_state');
+});
+
+test('invalid incremental-state ratios are rejected by the task contract', async () => {
+  const env = await envFile();
+  const tab = tabFor([fixture]);
+  await assert.rejects(() => run(tab, {
+    goal,
+    controls: [{op:'click', name:'Rooms'}],
+    allowedOrigins: [origin],
+    envFile: env,
+    incrementalStateMaxRatio: 0.05,
+  }), /Invalid task contract/);
+});
+
+test('disabled incremental mode keeps model requests in full mode', async () => {
+  const env = await envFile();
+  const bodies = [];
+  const expanded = `${fixture}\n${Array.from({length:40}, (_, index) => `${1000 + index} text footer noise ${index}\n${2000 + index} text Room size: ${index + 1} m²\n${3000 + index} text footer noise ${index + 40}`).join('\n')}`;
+  const changed = expanded.replace('Children 0-6 years old', 'Children 0-5 years old');
+  const tab = tabFor([expanded, expanded, changed, changed, changed]);
+  const outcome = await withFetch(async (_url, options) => {
+    bodies.push(JSON.parse(options.body));
+    return response(bodies.length === 1 ? 'a0' : 'DONE');
+  }, () => run(tab, {
+    goal,
+    controls: [{op:'click', name:'Rooms'}],
+    allowedOrigins: [origin],
+    envFile: env,
+    profileCacheEnabled: false,
+    incrementalStateEnabled: false,
+    maxSteps: 2,
+  }));
+  assert.equal(bodies.length, 2);
+  assert.equal(outcome.metrics.stateMode, 'full');
+  assert.equal(outcome.metrics.projectedChars, outcome.metrics.fullProjectedChars);
 });
 
 test('cache write failures do not prevent a decision and expose only safe metrics', async () => {
