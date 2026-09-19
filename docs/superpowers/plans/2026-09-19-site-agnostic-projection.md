@@ -232,4 +232,3 @@ EOF
 - [ ] **Step 5: Report the PR URL and verification evidence**
 
 Include the final PR URL, test count, live adapter/mode, projected/raw counts, and any remaining limitations.
-

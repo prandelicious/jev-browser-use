@@ -1,1 +1,1 @@
-{"status":"unavailable","reason":"No authorized Agoda tab was reachable in the current CUA browser inventory; no live-site evidence was fabricated."}
+{"status":"needs_verification","projectionAdapter":"agoda-property-v1","projectionMode":"evidence-lanes","rawChars":66468,"projectedChars":10503,"fullProjectedChars":10503,"stateMode":"full","executedActions":1,"finalVerification":"pass","cacheHit":true}

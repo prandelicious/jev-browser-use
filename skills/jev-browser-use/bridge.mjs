@@ -63,8 +63,17 @@ export async function prepareDecisionState(rawState, {goal, actions, previousRaw
   if (adapter.id === 'raw') return {decisionState:rawState, profile:null, metrics:emptyProfileMetrics(rawChars)};
   if (adapter.cacheFamily === null) {
     const startedAt = performance.now();
-    const decisionState = adapter.project(rawState, {goal, actions, maxChars:20000});
-    return {decisionState, profile:null, metrics:{...emptyProfileMetrics(rawChars, false, null, adapter.id), projectedChars:decisionState.length, projectionMs:Math.round(performance.now() - startedAt), projectionMode:'evidence-lanes', stateMode:'full', fullProjectedChars:decisionState.length}};
+    const projected = projectIncrementalState(rawState, previousRawState, {
+      goal,
+      actions,
+      enabled:incrementalStateEnabled,
+      maxRatio:incrementalStateMaxRatio,
+      projectionMode,
+      maxChars:20000,
+      projector: (snapshot, options) => adapter.project(snapshot, options),
+    });
+    const decisionState = projected.state;
+    return {decisionState, profile:null, metrics:{...emptyProfileMetrics(rawChars, false, null, adapter.id), projectedChars:decisionState.length, projectionMs:Math.round(performance.now() - startedAt), projectionMode:'evidence-lanes', stateMode:projected.mode, fullProjectedChars:projected.fullProjectedChars, deltaAddedChars:projected.deltaAddedChars, deltaRemovedChars:projected.deltaRemovedChars}};
   }
   const startedAt = performance.now();
   const family = 'agoda-property-v1';

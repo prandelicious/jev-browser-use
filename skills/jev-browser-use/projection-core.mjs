@@ -17,14 +17,14 @@ function originHeader(snapshot) {
   if (url.protocol !== 'https:') throw new Error('Invalid origin projection input');
   const labels = url.hostname.replace(/^www\./i, '').split('.');
   const label = labels.length > 1 ? labels.at(-2) : labels[0];
-  const site = label ? `${label.charAt(0).toUpperCase()}${label.slice(1)}` : host;
+  const site = label ? `${label.charAt(0).toUpperCase()}${label.slice(1)}` : 'Site';
   return `Browser tab: ${site} (origin ${url.origin}).`;
 }
 
 export function goalEvidencePatterns(goal) {
   const tokens = typeof goal === 'string' ? goal.toLowerCase().match(/[a-z0-9]+(?:-[a-z0-9]+)*/g) ?? [] : [];
   return [...new Set(tokens.filter(token => token.length >= 4 && !STOP_WORDS.has(token)).map(token => {
-    if (token === 'child') return /\bchildren?\b/i;
+    if (token === 'child') return /\bchild(?:ren)?\b/i;
     if (token === 'policy') return /\bpolic(?:y|ies)\b/i;
     return termPattern(token);
   }))];

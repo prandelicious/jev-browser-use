@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { projectEvidenceLanes } from '../skills/jev-browser-use/projection-core.mjs';
+import { goalEvidencePatterns, projectEvidenceLanes } from '../skills/jev-browser-use/projection-core.mjs';
 
 const snapshot = await readFile(new URL('./fixtures/generic-property.ax.txt', import.meta.url), 'utf8');
 
@@ -18,6 +18,12 @@ test('accepts arbitrary goal evidence phrases without site vocabulary', () => {
   const projected = projectEvidenceLanes(snapshot, { goal: 'Find square footage and child age policy', actions: [], evidencePatterns: [/square footage/i, /child age/i, /42 m²/i] });
   assert.match(projected, /Room size: 42 m²/);
   assert.match(projected, /Children 0-5 years old/);
+});
+
+test('matches both child and children when the goal uses either form', () => {
+  const patterns = goalEvidencePatterns('Find child age policy');
+  assert.ok(patterns.some(pattern => pattern.test('Children 0-5 years old')));
+  assert.ok(patterns.some(pattern => pattern.test('child age')));
 });
 
 test('rejects protected action overflow', () => {
