@@ -7,6 +7,8 @@ import {
   scoreEvidence,
   selectEvidence,
 } from '../skills/jev-browser-use/projection-core.mjs';
+import { buildDecisionState, DecisionStateBudgetError } from '../skills/jev-browser-use/decision-state.mjs';
+import { selectProjectionAdapter } from '../skills/jev-browser-use/projection-adapters.mjs';
 
 const denseAgoda = await readFile(new URL('./fixtures/agoda-dense-property.ax.txt', import.meta.url), 'utf8');
 
@@ -61,4 +63,37 @@ test('clips item text and keeps page text inert', () => {
   ].join('\n'), {maxItemChars: 20});
   assert.equal(result.nodes[0].name.length, 20);
   assert.equal(result.nodes[0].index, 9);
+});
+
+test('builds bounded structured state and a turn-local candidate map', () => {
+  const built = buildDecisionState(denseAgoda, {
+    goal: 'Find room size and child age policy for IDEAL FUKUSHIMA',
+    actions: [
+      {op: 'click', index: 41, name: 'Rooms', description: 'Click Rooms'},
+      {op: 'click', index: 44, name: 'Book now', description: 'Click Book now'},
+      {op: 'click', index: 42, name: 'Policies', description: 'Click Policies'},
+    ],
+    history: [{choice: 'a0', action: 'Click Rooms', executed: true}],
+    adapter: selectProjectionAdapter(denseAgoda),
+    maxStateBytes: 16_000,
+  });
+  assert.ok(Buffer.byteLength(JSON.stringify(built.state), 'utf8') <= 16_000);
+  assert.match(JSON.stringify(built.state.evidence), /Room size/i);
+  assert.match(JSON.stringify(built.state.evidence), /Children/i);
+  assert.doesNotMatch(JSON.stringify(built.state), /Book now|Reserve|Select room/i);
+  assert.equal('index' in built.state.candidates[0], false);
+  assert.deepEqual([...built.candidateMap.keys()], built.state.candidates.map(candidate => candidate.id));
+  assert.deepEqual(built.state.candidates.map(candidate => candidate.id), ['a0', 'a1']);
+  assert.equal(built.metrics.decisionStateChars, Buffer.byteLength(JSON.stringify(built.state), 'utf8'));
+});
+
+test('throws before producing an oversized mandatory candidate shell', () => {
+  assert.throws(() => buildDecisionState(
+    'Browser tab: Example URL: "https://stay.example.test/x".\n1 button Safe',
+    {
+      goal: 'A goal',
+      actions: [{op: 'click', index: 1, name: 'Safe', description: 'x'.repeat(200)}],
+      maxStateBytes: 100,
+    },
+  ), DecisionStateBudgetError);
 });
