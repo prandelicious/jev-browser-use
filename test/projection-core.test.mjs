@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { goalEvidencePatterns, projectEvidenceLanes } from '../skills/jev-browser-use/projection-core.mjs';
+import { goalEvidencePatterns, normalizeAXState, projectEvidenceLanes } from '../skills/jev-browser-use/projection-core.mjs';
 
 const snapshot = await readFile(new URL('./fixtures/generic-property.ax.txt', import.meta.url), 'utf8');
 
@@ -28,4 +28,9 @@ test('matches both child and children when the goal uses either form', () => {
 
 test('rejects protected action overflow', () => {
   assert.throws(() => projectEvidenceLanes(snapshot, { goal: 'Find room size', actions: [{index: 2, op: 'click', name: 'Book now'}], evidencePatterns: [/room size/i], maxChars: 20 }), /Projection exceeds safe limit/);
+});
+
+test('rejects non-HTTPS origins and strips URL path, query, and fragment', () => {
+  assert.equal(normalizeAXState('Browser tab: Example URL: "https://stay.example.test/path?q=1#x".').page.origin, 'https://stay.example.test');
+  assert.throws(() => normalizeAXState('Browser tab: Example URL: "http://stay.example.test/x".'), /Invalid origin/);
 });
