@@ -203,3 +203,80 @@ export function projectState(snapshot, {goal, actions, profile, maxChars = 20000
   }
   return output.join('\n');
 }
+
+function semanticLine(line) {
+  return line.replace(/^\d+\s+/, '').trim();
+}
+
+function projectionTerms(goal, profile) {
+  return new Set([...goalTerms(goal), ...(profile?.observedTerms ?? []), ...COLD_TERMS]);
+}
+
+function relevantProjectionLine(line, terms, actionIndices) {
+  if (line.startsWith('Browser tab:') || actionIndices.has(lineIndex(line))) return true;
+  const normalized = line.toLowerCase();
+  return [...terms].some(term => termPattern(term).test(normalized));
+}
+
+function uniqueLines(lines) {
+  const seen = new Set();
+  return lines.filter(line => {
+    const key = semanticLine(line);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function deltaText(header, context, added, removed, maxChars) {
+  const output = [header, '[semantic delta]', '[current context]', ...context];
+  if (added.length) output.push('[added or changed]', ...added.map(line => `+ ${line}`));
+  if (removed.length) output.push('[removed]', ...removed.map(line => `- ${line}`));
+  const state = output.join('\n');
+  if (state.length > maxChars) throw new Error('Incremental projection exceeds safe limit');
+  return state;
+}
+
+export function projectIncrementalState(currentSnapshot, previousSnapshot, {
+  goal,
+  actions,
+  profile,
+  maxChars = 20000,
+  enabled = true,
+  maxRatio = 0.65,
+} = {}) {
+  if (typeof currentSnapshot !== 'string' || (previousSnapshot !== null && typeof previousSnapshot !== 'string')) throw new Error('Invalid incremental state input');
+  if (!Number.isFinite(maxRatio) || maxRatio < 0.1 || maxRatio > 1) throw new Error('Invalid incremental state ratio');
+  const full = projectState(currentSnapshot, {goal, actions, profile, maxChars});
+  const fullProjectedChars = full.length;
+  const fullResult = (deltaAddedChars = 0, deltaRemovedChars = 0) => ({state:full, mode:'full', fullProjectedChars, deltaAddedChars, deltaRemovedChars});
+  if (!enabled || previousSnapshot === null) return fullResult();
+
+  const previous = projectState(previousSnapshot, {goal, actions, profile, maxChars});
+  const actionIndices = numericActionIndices(actions);
+  const terms = projectionTerms(goal, profile);
+  const currentLines = full.split('\n');
+  const previousLines = previous.split('\n');
+  const currentKeys = new Set(currentLines.map(semanticLine));
+  const previousByKey = new Map(previousLines.map(line => [semanticLine(line), line]));
+  const currentContext = uniqueLines(currentLines.filter(line => relevantProjectionLine(line, terms, actionIndices)));
+  const contextKeys = new Set(currentContext.map(semanticLine));
+  const added = uniqueLines(currentLines.filter(line => {
+    const key = semanticLine(line);
+    return !contextKeys.has(key) && previousByKey.get(key) !== line;
+  }));
+  const removed = uniqueLines(previousLines.filter(line => {
+    const key = semanticLine(line);
+    return relevantProjectionLine(line, terms, actionIndices) && !currentKeys.has(key);
+  }));
+  const deltaAddedChars = added.reduce((total, line) => total + line.length + 2, 0);
+  const deltaRemovedChars = removed.reduce((total, line) => total + line.length + 2, 0);
+  let state;
+  try {
+    state = deltaText(currentLines.find(line => line.startsWith('Browser tab:')) ?? '', currentContext.filter(line => !line.startsWith('Browser tab:')), added, removed, maxChars);
+  } catch {
+    return fullResult(deltaAddedChars, deltaRemovedChars);
+  }
+  if (!state || state.length >= fullProjectedChars * maxRatio) return fullResult(deltaAddedChars, deltaRemovedChars);
+  return {state, mode:'delta', fullProjectedChars, deltaAddedChars, deltaRemovedChars};
+}

@@ -14,6 +14,7 @@ import {
   loadProfile,
   saveProfile,
   projectState,
+  projectIncrementalState,
 } from '../skills/jev-browser-use/profile-cache.mjs';
 
 const PROPERTY_URL = 'https://www.agoda.com/ideal-fukushima-h8834111/hotel/osaka-jp.html';
@@ -132,4 +133,73 @@ test('projection adds a truncation marker within the limit and rejects protected
     profile: seedProfile(NOW),
     maxChars: 20,
   }), /Projection exceeds safe limit/);
+});
+
+test('incremental projection uses the full state for the first observation', () => {
+  const options = {
+    goal: 'Find room size and child age policy',
+    actions: [{index: 41}, {index: 87}],
+    profile: seedProfile(NOW),
+  };
+  const result = projectIncrementalState(fixture, null, options);
+  assert.equal(result.mode, 'full');
+  assert.equal(result.state, projectState(fixture, options));
+  assert.equal(result.deltaAddedChars, 0);
+  assert.equal(result.deltaRemovedChars, 0);
+});
+
+test('incremental projection sends a small relevant update as a delta', () => {
+  const expanded = `${fixture}\n${Array.from({length:40}, (_, index) => `${1000 + index} text footer noise ${index}\n${2000 + index} text Room size: ${index + 1} m²\n${3000 + index} text footer noise ${index + 40}`).join('\n')}`;
+  const options = {
+    goal: 'Find room size and child age policy',
+    actions: [{index: 41}, {index: 87}],
+    profile: seedProfile(NOW),
+    maxRatio: 0.65,
+  };
+  const changed = expanded.replace('Children 0-6 years old', 'Children 0-5 years old');
+  const result = projectIncrementalState(changed, expanded, options);
+  assert.equal(result.mode, 'delta');
+  assert.ok(result.state.length < result.fullProjectedChars * options.maxRatio);
+  assert.match(result.state, /Children 0-5 years old/);
+  assert.match(result.state, /semantic delta|added or changed/i);
+  assert.match(result.state, /41 tab Rooms/);
+});
+
+test('incremental projection retains current context and reports removed relevant lines', () => {
+  const expanded = `${fixture}\n${Array.from({length:40}, (_, index) => `${1000 + index} text footer noise ${index}\n${2000 + index} text Room size: ${index + 1} m²\n${3000 + index} text footer noise ${index + 40}`).join('\n')}`;
+  const options = {
+    goal: 'Find room size and child age policy',
+    actions: [{index: 41}, {index: 87}],
+    profile: seedProfile(NOW),
+  };
+  const changed = expanded.replace('Children 0-6 years old stay for free if using existing bedding.\n', '');
+  const result = projectIncrementalState(changed, expanded, options);
+  assert.equal(result.mode, 'delta');
+  assert.match(result.state, /Room size: 70 m²/);
+  assert.match(result.state, /41 tab Rooms/);
+  assert.match(result.state, /\[removed\]/i);
+  assert.ok(result.deltaRemovedChars > 0);
+  assert.equal(expanded.includes('Children 0-6 years old stay for free if using existing bedding.'), true);
+  assert.equal(changed.includes('Children 0-6 years old stay for free if using existing bedding.'), false);
+});
+
+test('incremental projection falls back to full state when the delta is too large or disabled', () => {
+  const expanded = `${fixture}\n${Array.from({length:40}, (_, index) => `${1000 + index} text footer noise ${index}\n${2000 + index} text Room size: ${index + 1} m²\n${3000 + index} text footer noise ${index + 40}`).join('\n')}`;
+  const options = {
+    goal: 'Find room size and child age policy',
+    actions: [{index: 41}, {index: 87}],
+    profile: seedProfile(NOW),
+  };
+  const noisy = expanded.replaceAll('Room size:', `Room size: ${'x'.repeat(400)}`);
+  const large = projectIncrementalState(noisy, expanded, {...options, maxRatio: 0.65});
+  assert.equal(large.mode, 'full');
+  const disabled = projectIncrementalState(noisy, expanded, {...options, enabled: false});
+  assert.equal(disabled.mode, 'full');
+  assert.equal(disabled.state, projectState(noisy, options));
+});
+
+test('incremental projection validates input and ratio', () => {
+  assert.throws(() => projectIncrementalState(null, fixture, {}), /Invalid incremental state input/);
+  assert.throws(() => projectIncrementalState(fixture, fixture, {maxRatio: 0.05}), /Invalid incremental state ratio/);
+  assert.throws(() => projectIncrementalState(fixture, fixture, {maxRatio: 1.1}), /Invalid incremental state ratio/);
 });
