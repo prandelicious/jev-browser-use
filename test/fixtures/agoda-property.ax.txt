@@ -1,0 +1,37 @@
+Browser tab: Agoda URL: "https://www.agoda.com/ideal-fukushima-h8834111/hotel/osaka-jp.html".
+1 text footer noise 1
+2 text footer noise 2
+3 text footer noise 3
+4 text footer noise 4
+5 text footer noise 5
+6 text footer noise 6
+7 text footer noise 7
+8 text footer noise 8
+9 text footer noise 9
+10 text footer noise 10
+11 text footer noise 11
+12 text footer noise 12
+13 text footer noise 13
+14 text footer noise 14
+15 text footer noise 15
+16 text footer noise 16
+17 text footer noise 17
+18 text footer noise 18
+19 text footer noise 19
+20 text footer noise 20
+21 text footer noise 21
+22 text footer noise 22
+23 text footer noise 23
+24 text footer noise 24
+25 text footer noise 25
+26 text footer noise 26
+27 text footer noise 27
+28 text footer noise 28
+29 text footer noise 29
+30 text footer noise 30
+41 tab Rooms
+42 text Deluxe Apartment
+43 text Room size: 70 m²/753 ft²
+87 tab Policies
+88 heading Property policies
+89 text Children 0-6 years old stay for free if using existing bedding.

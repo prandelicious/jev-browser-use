@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { parseEnv } from 'node:util';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { loadProfile, mergeObservedTerms, profileKey, projectIncrementalState, saveProfile, seedProfile } from './profile-cache.mjs';
+import { selectProjectionAdapter } from './projection-adapters.mjs';
 
 export async function loadConfig() {
   return JSON.parse(await readFile(join(homedir(), '.config', 'jev-browser-use', 'config.json'), 'utf8'));
@@ -39,12 +41,76 @@ function matchesPattern(name, pattern) {
   return typeof pattern === 'string' && matchesName(name,pattern);
 }
 
-function checkState(snapshot, allowedOrigins) {
-  const url = snapshot.match(/^Browser tab:.* URL: "([^"]+)"\./m)?.[1];
+function checkOrigin(snapshot, allowedOrigins) {
+  const url = snapshot.match(/^Browser tab:.*?\bURL: "([^"]+)"\)?\./m)?.[1];
   let origin;
   try { origin = new URL(url).origin; } catch { throw new Error('Cannot verify browser origin'); }
   if (!allowedOrigins.includes(origin)) throw new Error('Browser left authorized origins');
+}
+
+function checkDecisionState(snapshot) {
   if (snapshot.length > 24000) throw new Error('Snapshot too large; narrow the task');
+}
+
+function emptyProfileMetrics(rawChars, active = false, family = null, projectionAdapter = active ? 'agoda-property-v1' : 'raw') {
+  return {active, family, projectionAdapter, cacheHit:false, cacheRead:active ? 'miss' : 'disabled', cacheWrite:active ? 'pending' : 'disabled', rawChars, projectedChars:rawChars, projectionMs:0, projectionMode:active ? 'evidence-lanes' : 'raw', stateMode:active ? 'full' : 'raw', fullProjectedChars:rawChars, deltaAddedChars:0, deltaRemovedChars:0};
+}
+
+export async function prepareDecisionState(rawState, {goal, actions, previousRawState = null, profileCacheDir, profileCacheEnabled = true, incrementalStateEnabled = true, incrementalStateMaxRatio = 0.65, projectionMode = 'origin-minimized', now = new Date()} = {}) {
+  const rawChars = rawState.length;
+  const adapter = selectProjectionAdapter(rawState);
+  const key = adapter.cacheFamily === 'agoda-property-v1' ? profileKey(rawState) : null;
+  if (adapter.id === 'raw') return {decisionState:rawState, profile:null, metrics:emptyProfileMetrics(rawChars)};
+  if (adapter.cacheFamily === null) {
+    const startedAt = performance.now();
+    const projected = projectIncrementalState(rawState, previousRawState, {
+      goal,
+      actions,
+      enabled:incrementalStateEnabled,
+      maxRatio:incrementalStateMaxRatio,
+      projectionMode,
+      maxChars:20000,
+      projector: (snapshot, options) => adapter.project(snapshot, options),
+    });
+    const decisionState = projected.state;
+    return {decisionState, profile:null, metrics:{...emptyProfileMetrics(rawChars, false, null, adapter.id), projectedChars:decisionState.length, projectionMs:Math.round(performance.now() - startedAt), projectionMode:'evidence-lanes', stateMode:projected.mode, fullProjectedChars:projected.fullProjectedChars, deltaAddedChars:projected.deltaAddedChars, deltaRemovedChars:projected.deltaRemovedChars}};
+  }
+  const startedAt = performance.now();
+  const family = 'agoda-property-v1';
+  let profile;
+  const metrics = {active:true, family, projectionAdapter:adapter.id, cacheHit:false, cacheRead:'disabled', cacheWrite:'disabled', rawChars, projectedChars:rawChars, projectionMs:0, projectionMode:'evidence-lanes', stateMode:'full', fullProjectedChars:rawChars, deltaAddedChars:0, deltaRemovedChars:0};
+  if (profileCacheEnabled) {
+    const loaded = await loadProfile(key, {cacheDir:profileCacheDir, now});
+    metrics.cacheHit = loaded.hit;
+    metrics.cacheRead = loaded.hit ? 'hit' : loaded.reason;
+    profile = loaded.profile ?? seedProfile(now);
+  } else profile = seedProfile(now);
+  const merged = mergeObservedTerms(profile, rawState, now);
+  if (profileCacheEnabled) {
+    const changed = merged.observedTerms.join('|') !== profile.observedTerms.join('|');
+    if (changed || !metrics.cacheHit) {
+      const saved = await saveProfile(key, merged, {cacheDir:profileCacheDir, now});
+      metrics.cacheWrite = saved.written ? 'written' : 'failed';
+    } else metrics.cacheWrite = 'unchanged';
+  }
+  const projected = projectIncrementalState(rawState, previousRawState, {
+    goal,
+    actions,
+    profile:merged,
+    enabled:incrementalStateEnabled,
+    maxRatio:incrementalStateMaxRatio,
+    projectionMode,
+    maxChars:20000,
+    projector: (snapshot, options) => adapter.project(snapshot, options),
+  });
+  const decisionState = projected.state;
+  metrics.stateMode = projected.mode;
+  metrics.fullProjectedChars = projected.fullProjectedChars;
+  metrics.deltaAddedChars = projected.deltaAddedChars;
+  metrics.deltaRemovedChars = projected.deltaRemovedChars;
+  metrics.projectedChars = decisionState.length;
+  metrics.projectionMs = Math.round(performance.now() - startedAt);
+  return {decisionState, profile:merged, metrics};
 }
 
 function validateControl(control) {
@@ -162,72 +228,86 @@ function result(status,history,state,startedAt,details={}) {
 }
 
 // This accepts only an already-authorized cua_repl tab, never opens a browser.
-export async function run(tab,{goal,controls=[],policy,envFile,provider,model,allowedOrigins,maxSteps=10,minConfidence=0.55,maxMs=45000,decisionTimeoutMs=20000,maxDecisionRetries=1,waitPollMs=750},prior=[]) {
-  if (typeof goal !== 'string' || !goal || !Array.isArray(controls) || (!controls.length && !policy) || controls.some(control => !validateControl(control)) || !Number.isInteger(maxSteps) || maxSteps < 1 || maxSteps > 30 || !Number.isFinite(maxMs) || maxMs < 1 || maxMs > 45000 || !Number.isFinite(decisionTimeoutMs) || decisionTimeoutMs < 1000 || decisionTimeoutMs > 30000 || !Number.isInteger(maxDecisionRetries) || maxDecisionRetries < 0 || maxDecisionRetries > 2 || !Number.isFinite(minConfidence) || minConfidence < 0.55 || minConfidence > 1 || !Number.isFinite(waitPollMs) || waitPollMs < 100 || waitPollMs > 5000 || !Array.isArray(allowedOrigins) || !allowedOrigins.length) throw new Error('Invalid task contract');
+export async function run(tab,{goal,controls=[],policy,envFile,provider,model,allowedOrigins,maxSteps=10,minConfidence=0.55,maxMs=45000,decisionTimeoutMs=20000,maxDecisionRetries=1,waitPollMs=750,profileCacheDir,profileCacheEnabled=true,incrementalStateEnabled=true,incrementalStateMaxRatio=0.65},prior=[]) {
+  if (typeof goal !== 'string' || !goal || !Array.isArray(controls) || (!controls.length && !policy) || controls.some(control => !validateControl(control)) || !Number.isInteger(maxSteps) || maxSteps < 1 || maxSteps > 30 || !Number.isFinite(maxMs) || maxMs < 1 || maxMs > 45000 || !Number.isFinite(decisionTimeoutMs) || decisionTimeoutMs < 1000 || decisionTimeoutMs > 30000 || !Number.isInteger(maxDecisionRetries) || maxDecisionRetries < 0 || maxDecisionRetries > 2 || !Number.isFinite(minConfidence) || minConfidence < 0.55 || minConfidence > 1 || !Number.isFinite(waitPollMs) || waitPollMs < 100 || waitPollMs > 5000 || typeof incrementalStateEnabled !== 'boolean' || !Number.isFinite(incrementalStateMaxRatio) || incrementalStateMaxRatio < 0.1 || incrementalStateMaxRatio > 1 || !Array.isArray(allowedOrigins) || !allowedOrigins.length) throw new Error('Invalid task contract');
   const history = [...prior];
   const startedAt = performance.now();
   let waits = 0;
   let decisionRetries = 0;
-  let state = await tab.getAXState({emit:false,disableDiffing:true});
+  let previousRawState = null;
+  let rawState = await tab.getAXState({emit:false,disableDiffing:true});
+  let metrics = emptyProfileMetrics(rawState.length);
+  const runResult = (status, resultHistory, resultState, details={}) => result(status,resultHistory,resultState,startedAt,{metrics,...details});
   for (let step=0;step<maxSteps;step++) {
-    checkState(state,allowedOrigins);
-    if (performance.now()-startedAt > maxMs) return result('budget',history,state,startedAt);
-    const actions = [...availableActions(state,controls),...discoverActions(state,policy)].filter((action,index,all) => {
+    checkOrigin(rawState,allowedOrigins);
+    if (performance.now()-startedAt > maxMs) return runResult('budget',history,rawState);
+    const actions = [...availableActions(rawState,controls),...discoverActions(rawState,policy)].filter((action,index,all) => {
       const key = `${action.op}:${action.index ?? ''}:${action.direction ?? ''}:${action.amount ?? ''}:${action.key ?? ''}:${String(action.target ?? '')}`;
       return all.findIndex(candidate => `${candidate.op}:${candidate.index ?? ''}:${candidate.direction ?? ''}:${candidate.amount ?? ''}:${candidate.key ?? ''}:${String(candidate.target ?? '')}` === key) === index;
     });
+    let decisionState;
+    try {
+      const prepared = await prepareDecisionState(rawState,{goal,actions,previousRawState,profileCacheDir,profileCacheEnabled,incrementalStateEnabled,incrementalStateMaxRatio});
+      decisionState = prepared.decisionState;
+      metrics = prepared.metrics;
+      checkDecisionState(decisionState);
+      previousRawState = rawState;
+    } catch (error) {
+      return runResult('decision_error',history,rawState,{error:error instanceof Error ? error.message : 'Decision state preparation failed'});
+    }
     let decision;
     const decisionStartedAt = performance.now();
     try {
-      decision = await decide({envFile,provider,model,goal,state,actions,history,timeoutMs:Math.max(1,Math.min(decisionTimeoutMs,Math.floor(maxMs-(performance.now()-startedAt))))});
+      decision = await decide({envFile,provider,model,goal,state:decisionState,actions,history,timeoutMs:Math.max(1,Math.min(decisionTimeoutMs,Math.floor(maxMs-(performance.now()-startedAt))))});
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Decision failed';
       const canRetry = /transport failure or timeout/.test(message) && decisionRetries < maxDecisionRetries && maxMs-(performance.now()-startedAt) >= 1000;
       history.push({provider:provider ?? 'typesafe',choice:'ERROR',confidence:null,model:model ?? null,apiMs:Math.round(performance.now()-decisionStartedAt),action:'Decision request',executed:false,reason:canRetry ? 'decision_retry' : 'decision_error'});
       if (canRetry) {
         decisionRetries += 1;
-        state = await tab.getAXState({emit:false,disableDiffing:true});
-        checkState(state,allowedOrigins);
+        rawState = await tab.getAXState({emit:false,disableDiffing:true});
+        checkOrigin(rawState,allowedOrigins);
+        previousRawState = null;
         step -= 1;
         continue;
       }
-      return result('decision_error',history,state,startedAt,{error:error instanceof Error ? error.message : 'Decision failed'});
+      return runResult('decision_error',history,rawState,{error:error instanceof Error ? error.message : 'Decision failed'});
     }
     decisionRetries = 0;
     const record = {provider:decision.provider,choice:decision.choice,confidence:decision.confidence,model:decision.model,apiMs:decision.apiMs,action:decision.action?.description ?? decision.choice};
-    const fresh = await tab.getAXState({emit:false,disableDiffing:true});
-    checkState(fresh,allowedOrigins);
-    if (performance.now()-startedAt >= maxMs) return result('budget',history,fresh,startedAt);
-    if (fresh !== state) { history.push({...record,executed:false,reason:'stale_state'}); state=fresh; continue; }
-    if (decision.confidence < minConfidence) return result('low_confidence',[...history,record],state,startedAt);
+    const freshRawState = await tab.getAXState({emit:false,disableDiffing:true});
+    checkOrigin(freshRawState,allowedOrigins);
+    if (performance.now()-startedAt >= maxMs) return runResult('budget',history,freshRawState);
+    if (freshRawState !== rawState) { history.push({...record,executed:false,reason:'stale_state'}); rawState=freshRawState; continue; }
+    if (decision.confidence < minConfidence) return runResult('low_confidence',[...history,record],rawState);
     if (decision.choice === 'WAIT') {
       history.push({...record,executed:false,reason:'wait'});
-      if (++waits >= 3) return result('loading_timeout',history,state,startedAt);
+      if (++waits >= 3) return runResult('loading_timeout',history,rawState);
       const remaining = maxMs-(performance.now()-startedAt);
-      if (remaining <= 0) return result('budget',history,state,startedAt);
+      if (remaining <= 0) return runResult('budget',history,rawState);
       await new Promise(resolve => setTimeout(resolve,Math.min(waitPollMs,remaining)));
-      state = await tab.getAXState({emit:false,disableDiffing:true});
+      rawState = await tab.getAXState({emit:false,disableDiffing:true});
       continue;
     }
     waits = 0;
-    if (!decision.action) return result(decision.choice === 'DONE' ? 'needs_verification' : 'blocked',[...history,record],state,startedAt);
-    if (history.at(-1)?.noEffect && history.at(-1).action === record.action) return result('no_progress',history,state,startedAt);
+    if (!decision.action) return runResult(decision.choice === 'DONE' ? 'needs_verification' : 'blocked',[...history,record],rawState);
+    if (history.at(-1)?.noEffect && history.at(-1).action === record.action) return runResult('no_progress',history,rawState);
     try {
       await execute(tab,decision.action);
     } catch (error) {
       history.push({...record,executed:false,reason:'action_error'});
-      return result('action_error',history,state,startedAt,{error:error instanceof Error ? error.message : 'Action failed'});
+      return runResult('action_error',history,rawState,{error:error instanceof Error ? error.message : 'Action failed'});
     }
     history.push({...record,executed:true});
-    const next = await tab.getAXState({emit:false,disableDiffing:true});
-    checkState(next,allowedOrigins);
-    if (next === state) {
+    const nextRawState = await tab.getAXState({emit:false,disableDiffing:true});
+    checkOrigin(nextRawState,allowedOrigins);
+    if (nextRawState === rawState) {
       if (decision.action.op === 'scroll') history[history.length-1].effectNeedsVisualVerification = true;
       else history[history.length-1].noEffect = true;
     }
-    state = next;
+    rawState = nextRawState;
   }
-  return result('step_limit',history,state,startedAt);
+  return runResult('step_limit',history,rawState);
 }
 
 export function createSession(tab,defaults={}) {
@@ -257,7 +337,7 @@ export async function waitForState(tab,{allowedOrigins,includes=[],excludes=[],t
   let state = '';
   while (performance.now()-startedAt < timeoutMs) {
     state = await tab.getAXState({emit:false,disableDiffing:true});
-    checkState(state,allowedOrigins);
+    checkOrigin(state,allowedOrigins);
     if (includes.every(value => state.includes(value)) && excludes.every(value => !state.includes(value))) return {status:'matched',state,elapsedMs:Math.round(performance.now()-startedAt)};
     const remaining = timeoutMs-(performance.now()-startedAt);
     if (remaining > 0) await new Promise(resolve => setTimeout(resolve,Math.min(pollMs,remaining)));

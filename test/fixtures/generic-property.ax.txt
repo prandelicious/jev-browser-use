@@ -1,0 +1,7 @@
+Browser tab: Example (URL: "https://stay.example.test/listing/quiet-flat?checkin=2026-10-01&guests=2").
+1 text footer noise
+2 button Book now
+3 link House rules
+4 text Room size: 42 m²
+5 text Children 0-5 years old stay for free.
+6 text Credentials must never appear here
