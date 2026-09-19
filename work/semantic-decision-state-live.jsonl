@@ -1,0 +1,1 @@
+{"fixture":"ideal-fukushima-public","status":"low_confidence","rawChars":74392,"normalizedChars":74495,"decisionStateChars":8689,"normalizationMs":43,"projectionMs":43,"apiMs":1533,"elapsedMs":3081,"decisionTurns":3,"executedActions":0,"roomSize":"Not covered","childPolicy":"Pass","bookingBoundary":"Pass","notes":"page_state_churn_and_low_confidence_before_room_size"}
