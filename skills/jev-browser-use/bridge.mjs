@@ -199,9 +199,7 @@ export async function run(tab, {
       .filter((action,index,all) => all.findIndex(candidate => rawActionKey(candidate) === rawActionKey(action)) === index);
     let prepared;
     try {
-      const projectionStartedAt = performance.now();
       prepared = await prepareDecisionState(rawState,{goal,actions,history, maxDecisionStateBytes,maxEvidenceItems,maxCandidates,maxItemChars,denyNames:policy?.denyNames});
-      prepared.metrics.projectionMs = Math.max(prepared.metrics.projectionMs,Math.round(performance.now()-projectionStartedAt));
       runMetrics = {...runMetrics,...prepared.metrics,rawChars:rawState.length,decisionStateChars:prepared.metrics.decisionStateChars};
     } catch (error) {
       return finish('decision_error',history,rawState,{error:error instanceof Error ? error.message : 'Decision state preparation failed'});
@@ -255,12 +253,21 @@ export function createSession(tab,defaults={}) {
   let elapsedMs = 0;
   let runs = 0;
   let handoffs = {};
-  const metrics = () => ({runs,decisions:history.length,decisionTurns:history.length,executedActions:history.filter(item => item.executed).length,decisionRetries:history.filter(item => item.reason === 'decision_retry').length,failedDecisions:history.filter(item => item.reason === 'decision_error').length,apiMs:history.reduce((total,item) => total+(item.apiMs ?? 0),0),elapsedMs,handoffs:{...handoffs}});
+  const totals = {rawChars:0,normalizedChars:0,decisionStateChars:0,normalizationMs:0,projectionMs:0,apiMs:0,elapsedMs:0,decisionTurns:0};
+  const metrics = () => ({runs,decisions:history.length,decisionTurns:totals.decisionTurns,executedActions:history.filter(item => item.executed).length,decisionRetries:history.filter(item => item.reason === 'decision_retry').length,failedDecisions:history.filter(item => item.reason === 'decision_error').length,rawChars:totals.rawChars,normalizedChars:totals.normalizedChars,decisionStateChars:totals.decisionStateChars,normalizationMs:totals.normalizationMs,projectionMs:totals.projectionMs,apiMs:totals.apiMs,elapsedMs,handoffs:{...handoffs}});
   return {
-    async run(task) { const outcome = await run(tab,{...defaults,...task},history); history=outcome.history; elapsedMs += outcome.elapsedMs; runs += 1; if (outcome.handoff) handoffs[outcome.handoff]=(handoffs[outcome.handoff] ?? 0)+1; return {...outcome,sessionMetrics:metrics()}; },
+    async run(task) {
+      const outcome = await run(tab,{...defaults,...task},history);
+      history=outcome.history;
+      elapsedMs += outcome.elapsedMs;
+      runs += 1;
+      for (const key of Object.keys(totals)) totals[key] += outcome.metrics[key] ?? 0;
+      if (outcome.handoff) handoffs[outcome.handoff]=(handoffs[outcome.handoff] ?? 0)+1;
+      return {...outcome,sessionMetrics:metrics()};
+    },
     metrics,
     history:() => [...history],
-    reset() { history=[]; elapsedMs=0; runs=0; handoffs={}; },
+    reset() { history=[]; elapsedMs=0; runs=0; handoffs={}; for (const key of Object.keys(totals)) totals[key]=0; },
   };
 }
 

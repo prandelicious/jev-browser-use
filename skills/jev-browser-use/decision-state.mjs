@@ -54,7 +54,9 @@ export function buildDecisionState(rawState, {
   denyNames = [],
 } = {}) {
   if (typeof rawState !== 'string' || typeof goal !== 'string' || !Number.isInteger(maxStateBytes) || maxStateBytes < 1) throw new Error('Invalid decision state input');
+  const normalizationStartedAt = performance.now();
   const normalized = normalizeAXState(rawState, {maxItemChars});
+  const normalizationMs = Math.max(0, performance.now() - normalizationStartedAt);
   const normalizedChars = JSON.stringify(normalized).length;
   const safeActions = (Array.isArray(actions) ? actions : [])
     .filter(action => isSafeAction(action, denyNames))
@@ -66,6 +68,7 @@ export function buildDecisionState(rawState, {
     label: clipped(actionLabel(action), maxItemChars),
   }));
   const candidateMap = new Map(candidates.map((candidate, index) => [candidate.id, safeActions[index]]));
+  const projectionStartedAt = performance.now();
   const hints = Array.isArray(adapter?.evidenceHints) ? adapter.evidenceHints : [];
   const selected = selectEvidence(normalized.nodes, {goal, adapterHints:hints, maxItems:maxEvidenceItems, maxPerSignature:3});
   const evidence = selected.filter(node => !HIGH_RISK.test(node.name)).map((node, index) => ({id:`e${index}`, text:clipped(node.name, maxItemChars), role:node.role}));
@@ -87,6 +90,7 @@ export function buildDecisionState(rawState, {
   while (byteLength(state) > maxStateBytes && trim()) {}
   if (byteLength(state) > maxStateBytes) throw new DecisionStateBudgetError();
   const decisionStateChars = byteLength(state);
+  const projectionMs = Math.max(0, performance.now() - projectionStartedAt);
   return {
     state,
     candidateMap,
@@ -98,8 +102,8 @@ export function buildDecisionState(rawState, {
       evidenceSelected: state.evidence.length,
       candidatesSeen: Array.isArray(actions) ? actions.length : 0,
       candidatesSelected: candidates.length,
-      normalizationMs: 0,
-      projectionMs: 0,
+      normalizationMs: Math.round(normalizationMs),
+      projectionMs: Math.round(projectionMs),
     },
   };
 }
