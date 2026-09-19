@@ -39,14 +39,14 @@ unwritable entries are cache misses; Jev still receives a safe projection when
 the cache cannot be read or written.
 
 For recognized pages, the bridge learns allowlisted terms from the
-origin-validated raw snapshot and sends Jev a bounded projection containing the
-browser header, exact permitted action lines, goal/structural matches, and one
-neighboring line on each side. Raw state remains authoritative for origin
-checks, action discovery and indices, stale-state equality, execution, and
-Codex's final verification. A projection failure hands control back without
-sending an oversized raw snapshot. `profileCacheEnabled: false` keeps the
-projection behavior but uses the cold seed profile and disables cache reads and
-writes.
+origin-validated raw snapshot and sends Jev an origin-minimized evidence-lane
+projection containing a compact Agoda origin header, exact permitted action
+lines, and direct goal evidence. It does not expand every cached structural term
+or neighboring line. Raw state remains authoritative for origin checks, action
+discovery and indices, stale-state equality, execution, and Codex's final
+verification. A projection failure hands control back without sending an
+oversized raw snapshot. `profileCacheEnabled: false` keeps the projection
+behavior but uses the cold seed profile and disables cache reads and writes.
 
 Incremental state mode is enabled by default for each `run()` call. The first
 decision sends the compact projection. Later decisions may send an in-memory
@@ -61,9 +61,11 @@ the size threshold.
 Each run exposes only count/timing metrics: `active`, `family`, `cacheHit`,
 `cacheRead`, `cacheWrite`, `rawChars`, `projectedChars`, `projectionMs`,
 `stateMode`, `fullProjectedChars`, `deltaAddedChars`, and
-`deltaRemovedChars`. `stateMode` is `raw` for unsupported routes and `full` or
-`delta` for recognized Agoda property pages. These metrics never contain page
-text, URLs, cache paths, or history. A smaller projection or delta is a
+`deltaRemovedChars`, and `projectionMode`. `stateMode` is `raw` for unsupported
+routes and `full` or `delta` for recognized Agoda property pages.
+`projectionMode` is `raw` for unsupported routes and `origin-minimized` for
+recognized Agoda property pages. These metrics never contain page text, URLs,
+cache paths, or history. A smaller projection or delta is a
 transport/input-size metric, not evidence that the requested page fact is
 correct; Codex must still verify the result independently.
 

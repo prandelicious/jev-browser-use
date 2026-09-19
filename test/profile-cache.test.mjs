@@ -14,6 +14,7 @@ import {
   loadProfile,
   saveProfile,
   projectState,
+  projectOriginMinimizedState,
   projectIncrementalState,
 } from '../skills/jev-browser-use/profile-cache.mjs';
 
@@ -133,6 +134,34 @@ test('projection adds a truncation marker within the limit and rejects protected
     profile: seedProfile(NOW),
     maxChars: 20,
   }), /Projection exceeds safe limit/);
+});
+
+test('origin-minimized projection keeps exact actions and direct evidence with a compact origin header', () => {
+  const projected = projectOriginMinimizedState(fixture, {
+    goal: 'Find room size and child age policy',
+    actions: [{index: 41}, {index: 87}],
+    profile: mergeObservedTerms(seedProfile(NOW), fixture, NOW),
+  });
+  assert.equal(projected, [
+    'Browser tab: Agoda (origin https://www.agoda.com).',
+    '41 tab Rooms',
+    '43 text Room size: 70 m²/753 ft²',
+    '87 tab Policies',
+    '89 text Children 0-6 years old stay for free if using existing bedding.',
+  ].join('\n'));
+  assert.doesNotMatch(projected, /footer noise|h8834111|checkIn|Title:/i);
+});
+
+test('origin-minimized projection does not expand cached structural vocabulary', () => {
+  const projected = projectOriginMinimizedState(fixture, {
+    goal: 'Open the property policies and inspect children policy',
+    actions: [{index: 87}],
+    profile: mergeObservedTerms(seedProfile(NOW), fixture, NOW),
+  });
+  assert.match(projected, /Browser tab: Agoda \(origin https:\/\/www\.agoda\.com\)\./);
+  assert.match(projected, /^87 tab Policies$/m);
+  assert.match(projected, /Children 0-6 years old/);
+  assert.doesNotMatch(projected, /footer noise|Deluxe Apartment|Room size/);
 });
 
 test('incremental projection uses the full state for the first observation', () => {

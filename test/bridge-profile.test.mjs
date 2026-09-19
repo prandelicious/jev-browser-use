@@ -63,7 +63,9 @@ test('run sends compact projected state and executes the raw action index', asyn
   assert.equal(tab.clicks[0], 41);
   assert.doesNotMatch(bodies[0].state.browser, /footer noise 29/);
   assert.match(bodies[0].state.browser, /^41 tab Rooms$/m);
+  assert.match(bodies[0].state.browser, /^Browser tab: Agoda \(origin https:\/\/www\.agoda\.com\)\.$/m);
   assert.ok(outcome.metrics.projectedChars < outcome.metrics.rawChars);
+  assert.equal(outcome.metrics.projectionMode, 'origin-minimized');
   assert.equal(outcome.metrics.active, true);
 });
 
@@ -84,7 +86,7 @@ test('a warm run reads the same family profile as a cache hit', async () => {
   assert.equal(warm.metrics.cacheRead, 'hit');
 });
 
-test('a small relevant change uses a semantic delta after the first decision', async () => {
+test('a recognized Agoda run keeps origin-minimized evidence after a state change', async () => {
   const cacheDir = await tempDir();
   const env = await envFile();
   const expanded = `${fixture}\n${Array.from({length:40}, (_, index) => `${1000 + index} text footer noise ${index}\n${2000 + index} text Room size: ${index + 1} m²\n${3000 + index} text footer noise ${index + 40}`).join('\n')}`;
@@ -103,9 +105,10 @@ test('a small relevant change uses a semantic delta after the first decision', a
     maxSteps: 2,
   }));
   assert.equal(bodies.length, 2);
-  assert.ok(bodies[1].state.browser.length < bodies[0].state.browser.length);
-  assert.equal(outcome.metrics.stateMode, 'delta');
-  assert.equal(outcome.metrics.fullProjectedChars > outcome.metrics.projectedChars, true);
+  assert.doesNotMatch(bodies[0].state.browser, /footer noise/);
+  assert.doesNotMatch(bodies[1].state.browser, /footer noise/);
+  assert.match(bodies[1].state.browser, /Children 0-5 years old/);
+  assert.equal(outcome.metrics.projectionMode, 'origin-minimized');
 });
 
 test('an omitted raw line changing between decision and refresh prevents a click', async () => {

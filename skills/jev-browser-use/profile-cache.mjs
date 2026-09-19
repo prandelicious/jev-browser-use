@@ -204,6 +204,56 @@ export function projectState(snapshot, {goal, actions, profile, maxChars = 20000
   return output.join('\n');
 }
 
+function axRole(line) {
+  return line.trim().match(/^\d+ ([\w]+)(?: \([^)]*\))? /)?.[1] ?? null;
+}
+
+function originHeader(snapshot) {
+  const value = profileUrl(snapshot);
+  try {
+    const url = new URL(value);
+    const site = url.hostname.replace(/^www\./i, '').split('.')[0];
+    return `Browser tab: ${site.charAt(0).toUpperCase()}${site.slice(1)} (origin ${url.origin}).`;
+  } catch {
+    throw new Error('Invalid origin projection input');
+  }
+}
+
+function directEvidencePatterns(goal) {
+  const text = typeof goal === 'string' ? goal.toLowerCase() : '';
+  const patterns = [];
+  if (/\broom\s+size\b/.test(text)) patterns.push(/room\s+size/i);
+  if (/\bchild(?:ren)?\b/.test(text)) patterns.push(/child(?:ren)?/i);
+  if (/\bpolic(?:y|ies)\b/.test(text)) patterns.push(/polic(?:y|ies)/i);
+  if (/\bage\b/.test(text)) patterns.push(/\bage\b/i);
+  if (/\bcheck[- ]?in\b/.test(text)) patterns.push(/check[- ]?in/i);
+  if (/\bcheck[- ]?out\b/.test(text)) patterns.push(/check[- ]?out/i);
+  if (/\boccupancy\b/.test(text)) patterns.push(/occupancy/i);
+  if (/\bguests?\b/.test(text)) patterns.push(/guests?/i);
+  if (/\bbeds?\b/.test(text)) patterns.push(/beds?/i);
+  if (/\bfacilit(?:y|ies)\b/.test(text)) patterns.push(/facilit(?:y|ies)/i);
+  if (/\breviews?\b/.test(text)) patterns.push(/reviews?/i);
+  if (/\blocation\b/.test(text)) patterns.push(/location/i);
+  return patterns;
+}
+
+export function projectOriginMinimizedState(snapshot, {goal, actions, maxChars = 20000} = {}) {
+  if (typeof snapshot !== 'string' || !Number.isInteger(maxChars) || maxChars < 1) throw new Error('Invalid origin projection input');
+  const header = originHeader(snapshot);
+  const actionIndices = numericActionIndices(actions);
+  const patterns = directEvidencePatterns(goal);
+  const lines = snapshot.split('\n');
+  const selected = lines.filter(line => {
+    if (line.startsWith('Browser tab:') || actionIndices.has(lineIndex(line))) return true;
+    const role = axRole(line);
+    return role !== 'heading' && role !== 'container' && patterns.some(pattern => pattern.test(line));
+  });
+  const output = [header, ...uniqueLines(selected.filter(line => !line.startsWith('Browser tab:')))];
+  const state = output.join('\n');
+  if (state.length > maxChars) throw new Error('Origin projection exceeds safe limit');
+  return state;
+}
+
 function semanticLine(line) {
   return line.replace(/^\d+\s+/, '').trim();
 }
@@ -244,15 +294,18 @@ export function projectIncrementalState(currentSnapshot, previousSnapshot, {
   maxChars = 20000,
   enabled = true,
   maxRatio = 0.65,
+  projectionMode = 'full',
 } = {}) {
   if (typeof currentSnapshot !== 'string' || (previousSnapshot !== null && typeof previousSnapshot !== 'string')) throw new Error('Invalid incremental state input');
   if (!Number.isFinite(maxRatio) || maxRatio < 0.1 || maxRatio > 1) throw new Error('Invalid incremental state ratio');
-  const full = projectState(currentSnapshot, {goal, actions, profile, maxChars});
+  const project = projectionMode === 'origin-minimized' ? projectOriginMinimizedState : projectState;
+  if (projectionMode !== 'full' && projectionMode !== 'origin-minimized') throw new Error('Invalid projection mode');
+  const full = project(currentSnapshot, {goal, actions, profile, maxChars});
   const fullProjectedChars = full.length;
   const fullResult = (deltaAddedChars = 0, deltaRemovedChars = 0) => ({state:full, mode:'full', fullProjectedChars, deltaAddedChars, deltaRemovedChars});
   if (!enabled || previousSnapshot === null) return fullResult();
 
-  const previous = projectState(previousSnapshot, {goal, actions, profile, maxChars});
+  const previous = project(previousSnapshot, {goal, actions, profile, maxChars});
   const actionIndices = numericActionIndices(actions);
   const terms = projectionTerms(goal, profile);
   const currentLines = full.split('\n');

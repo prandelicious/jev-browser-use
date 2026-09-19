@@ -52,17 +52,17 @@ function checkDecisionState(snapshot) {
 }
 
 function emptyProfileMetrics(rawChars, active = false, family = null) {
-  return {active, family, cacheHit:false, cacheRead:active ? 'miss' : 'disabled', cacheWrite:active ? 'pending' : 'disabled', rawChars, projectedChars:rawChars, projectionMs:0, stateMode:active ? 'full' : 'raw', fullProjectedChars:rawChars, deltaAddedChars:0, deltaRemovedChars:0};
+  return {active, family, cacheHit:false, cacheRead:active ? 'miss' : 'disabled', cacheWrite:active ? 'pending' : 'disabled', rawChars, projectedChars:rawChars, projectionMs:0, projectionMode:active ? 'origin-minimized' : 'raw', stateMode:active ? 'full' : 'raw', fullProjectedChars:rawChars, deltaAddedChars:0, deltaRemovedChars:0};
 }
 
-export async function prepareDecisionState(rawState, {goal, actions, previousRawState = null, profileCacheDir, profileCacheEnabled = true, incrementalStateEnabled = true, incrementalStateMaxRatio = 0.65, now = new Date()} = {}) {
+export async function prepareDecisionState(rawState, {goal, actions, previousRawState = null, profileCacheDir, profileCacheEnabled = true, incrementalStateEnabled = true, incrementalStateMaxRatio = 0.65, projectionMode = 'origin-minimized', now = new Date()} = {}) {
   const rawChars = rawState.length;
   const key = profileKey(rawState);
   if (!key) return {decisionState:rawState, profile:null, metrics:emptyProfileMetrics(rawChars)};
   const startedAt = performance.now();
   const family = 'agoda-property-v1';
   let profile;
-  const metrics = {active:true, family, cacheHit:false, cacheRead:'disabled', cacheWrite:'disabled', rawChars, projectedChars:rawChars, projectionMs:0, stateMode:'full', fullProjectedChars:rawChars, deltaAddedChars:0, deltaRemovedChars:0};
+  const metrics = {active:true, family, cacheHit:false, cacheRead:'disabled', cacheWrite:'disabled', rawChars, projectedChars:rawChars, projectionMs:0, projectionMode, stateMode:'full', fullProjectedChars:rawChars, deltaAddedChars:0, deltaRemovedChars:0};
   if (profileCacheEnabled) {
     const loaded = await loadProfile(key, {cacheDir:profileCacheDir, now});
     metrics.cacheHit = loaded.hit;
@@ -83,6 +83,7 @@ export async function prepareDecisionState(rawState, {goal, actions, previousRaw
     profile:merged,
     enabled:incrementalStateEnabled,
     maxRatio:incrementalStateMaxRatio,
+    projectionMode,
     maxChars:20000,
   });
   const decisionState = projected.state;
