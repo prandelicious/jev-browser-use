@@ -22,6 +22,37 @@ Use this as the default first route for browser verification. Run the decision/a
 
 The intended scale boundary is action-heavy browser work. Keep navigation, expanding panels, clicking buttons, toggling controls, paging, and scrolling inside Jev's loop so Codex does not spend a model turn on each mechanical action. Hand control to Codex for text entry, visual or semantic judgment, unsupported widgets, consequential approval gates, and final verification.
 
+## Agoda structural profile cache
+
+The bridge can use a fail-open, user-level structural profile for HTTPS Agoda
+property-detail pages whose path matches the supported hotel-detail family. All
+matching pages share the fixed family `agoda-property-v1`; search pages, other
+sites, and unsupported routes use the existing raw-state path without cache I/O.
+
+Profiles are stored at `~/.cache/jev-browser-use/profiles` with owner-only
+permissions, a maximum file size of 8 KiB, and a 30-day TTL. The cache stores
+only schema metadata and code-allowlisted structural terms such as `rooms`,
+`room size`, `policies`, `children`, `age`, and `occupancy`. It never stores
+URLs, queries, property names, page snapshots, prices, availability, policies,
+typed text, history, or accessibility indices. Corrupt, expired, unreadable, or
+unwritable entries are cache misses; Jev still receives a safe projection when
+the cache cannot be read or written.
+
+For recognized pages, the bridge learns allowlisted terms from the
+origin-validated raw snapshot and sends Jev a bounded projection containing the
+browser header, exact permitted action lines, goal/structural matches, and one
+neighboring line on each side. Raw state remains authoritative for origin
+checks, action discovery and indices, stale-state equality, execution, and
+Codex's final verification. A projection failure hands control back without
+sending an oversized raw snapshot. `profileCacheEnabled: false` keeps the
+projection behavior but uses the cold seed profile and disables cache reads and
+writes.
+
+Each run exposes only these cache metrics: `active`, `family`, `cacheHit`,
+`cacheRead`, `cacheWrite`, `rawChars`, `projectedChars`, and `projectionMs`.
+A smaller projection is a transport/input-size metric, not evidence that the
+requested page fact is correct; Codex must still verify the result independently.
+
 ## Load the configured helper
 
 Call `loadConfig()` and pass its result unchanged into `createSession()` or `run()` as shown below. The helper owns authentication, API requests, and response validation. Browser tasks must not select a provider, override the configured model, write their own API client, or change credential configuration unless the user requests that change.
