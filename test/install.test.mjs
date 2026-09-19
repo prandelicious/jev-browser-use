@@ -13,4 +13,5 @@ test('installer includes the bridge, profile, and projection modules', async () 
   await stat(join(result.target, 'profile-cache.mjs'));
   await stat(join(result.target, 'projection-core.mjs'));
   await stat(join(result.target, 'projection-adapters.mjs'));
+  await stat(join(result.target, 'decision-state.mjs'));
 });
