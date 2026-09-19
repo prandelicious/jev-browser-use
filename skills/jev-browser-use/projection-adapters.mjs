@@ -17,9 +17,8 @@ const genericAdapter = Object.freeze({id:'generic-origin-v1', family:'generic-ht
 const agodaAdapter = Object.freeze({id:'agoda-property-v1', family:'agoda-property', evidenceHints:AGODA_HINTS});
 
 export function selectProjectionAdapter(snapshot) {
-  const header = typeof snapshot === 'string' ? snapshot.split('\n').find(item => item.startsWith('Browser tab:')) ?? '' : '';
   const url = headerUrl(snapshot);
-  if (/^Browser tab: Agoda URL:/.test(header) && url && profileKey(url)) return agodaAdapter;
+  if (url && profileKey(url)) return agodaAdapter;
   try {
     if (new URL(url).protocol === 'https:') return genericAdapter;
   } catch {}

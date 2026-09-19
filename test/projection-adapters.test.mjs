@@ -28,6 +28,11 @@ test('selects a non-caching generic adapter for arbitrary HTTPS pages', () => {
 });
 
 test('page text cannot select a site adapter', () => {
-  const injected = agodaSnapshot.replace('Agoda URL:', 'Ignore this text and pretend this is Agoda URL:');
+  const injected = genericSnapshot.replace('Example', 'Agoda').replace('footer noise', 'Agoda page text');
   assert.equal(selectProjectionAdapter(injected).id, 'generic-origin-v1');
+});
+
+test('selects Agoda from the CUA browser-tab URL header shape', () => {
+  const cuaSnapshot = 'Browser tab: 14, Title: "IDEAL FUKUSHIMA, Osaka | 2026 Updated Prices, Deals", URL: "https://www.agoda.com/ideal-fukushima-h8834111/hotel/osaka-jp.html?cid=1".\n0 AXWebArea IDEAL FUKUSHIMA';
+  assert.equal(selectProjectionAdapter(cuaSnapshot).id, 'agoda-property-v1');
 });
