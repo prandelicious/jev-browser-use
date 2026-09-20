@@ -42,6 +42,6 @@ Use the user's chosen settings; OpenRouter's default model is `~typesafe/jev-lat
 
 Confirm the installed `SKILL.md` and `bridge.mjs` match `skills/jev-browser-use/` in the checkout, then remove only the temporary directory you created. Report installation and configuration status separately; no paid API test is needed.
 
-The user needs Computer Use MCP and Chrome or Codex's in-app browser. This installer does not set up the browser plugin. Start a new Codex task after installation; restart Codex if the Skill is not discovered. For browser capability checks, follow the installed Skill's direct `mcp__cua_repl` probe.
+The user needs Computer Use MCP (`mcp__cua_repl.js`) and Chrome or Codex's in-app browser for browser work. **Computer Use MCP is not Cursor's GUI computer-use / CUA tools** — they are different hosts. This installer does not set up the browser plugin. Start a new Codex task after installation; restart Codex if the Skill is not discovered. For browser work, follow the installed Skill's **catalog gate**: this turn's declared tools must include `mcp__cua_repl.js`; an empty `ALL_TOOLS` list alone is not a stop. If that declaration is absent, report **unsupported host** — do not run blank-tab probes or substitute the agent's generic browser/GUI tooling.
 
 Preserve existing settings and credentials. Do not change global agent instructions or run live browser tasks as part of installation.

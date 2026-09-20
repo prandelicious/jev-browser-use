@@ -22,7 +22,7 @@ npx skills add wy-coliney/jev-browser-use -g -a codex -y
 
 Then [configure your Jev API](skills/jev-browser-use/references/provider-configuration.md) and start a new Codex task.
 
-You need **Node.js 22+**, **Codex with Computer Use connected to Chrome or its in-app browser**, and **Jev access through TypeSafe or OpenRouter Decisions**. Installing this Skill does not install the browser connection.
+You need **Node.js 22+**, **Codex with Computer Use MCP** (`mcp__cua_repl.js`) **connected to Chrome or its in-app browser**, and **Jev access through TypeSafe or OpenRouter Decisions**. Computer Use MCP is **not** Cursor's GUI computer-use / CUA tools. Installing this Skill does not install the browser connection or authorize browser work on hosts without a declared `mcp__cua_repl.js` tool.
 
 <details>
 <summary><strong>Prefer the native Codex plugin?</strong></summary>
