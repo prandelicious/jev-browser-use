@@ -77,8 +77,8 @@ This Skill is the **only** catalog gate. `bridge.mjs` does not read tool declara
 
 `cua_repl` is normally a **direct tool namespace**: `mcp__cua_repl.js` and `mcp__cua_repl.js_reset`. It is not a nested `tools.*` method inside `functions.exec`. Codex often omits these from deferred lists such as `ALL_TOOLS`.
 
-1. Inspect **this turn's declared tools** (direct declarations), not `ALL_TOOLS` alone. An empty `ALL_TOOLS.filter(... /cua|browser/ ...)` is **inconclusive** — do **not** stop or declare the browser plugin missing on that basis alone. Look for the direct declaration `mcp__cua_repl.js`.
-2. If `mcp__cua_repl.js` is **not** declared this turn, stop with **unsupported host**. Report the declaration evidence you checked. The same failure applies on Cursor, Claude Code, CI, and other hosts without that declaration. Do not detect or substitute GUI `computerUse`, host browser controls, Playwright, CDP, or Bun.WebView. Do not claim Jev ran or improvise an untested adapter.
+1. Inspect **this turn's declared tools** (direct declarations), not `ALL_TOOLS` alone. An empty `ALL_TOOLS` list is **inconclusive** — do **not** stop or declare the browser plugin missing on that basis alone. Look for the direct declaration `mcp__cua_repl.js`.
+2. If `mcp__cua_repl.js` is **not** declared this turn, stop with **unsupported host**. Report the declaration evidence you checked. The same failure applies on Cursor, Claude Code, CI, and other hosts without that declaration. Do not detect or substitute GUI computer-use tools, host browser controls, Playwright, CDP, or Bun.WebView. Do not claim Jev ran or improvise an untested adapter.
 3. Keep three states separate: plugin enabled globally, tool exposed to this turn, and requested browser/profile/tab reachable. Configuration proves only enablement. A plugin mention proves only selection. A successful documented read of the requested tab proves reachability.
 4. If the user named Chrome or an existing tab, use the runtime's documented discovery/attachment API for that target after the catalog gate passes. Do not open a replacement session or claim to have inspected an existing tab without that runtime.
 5. When blocked, report the exact failing state and checks actually made. Do not tell the user to enable a nonexistent per-task switch or repeat global setup they already completed. If Codex documentation supports browser selection via `@Chrome`, suggest selecting it from the mention menu once. Re-check on the next turn; if `mcp__cua_repl.js` is still undeclared, say so without claiming the plugin is uninstalled. A new task or app restart is a recovery option, not a guaranteed fix. Create a new task only when the user explicitly requests one, and use the handoff checklist below.
@@ -121,9 +121,9 @@ from publication; a prepared draft is not a sent post.
 
 ## Execute in cua_repl
 
-Only after `mcp__cua_repl.js` is declared this turn (catalog gate above). Obtain a tab through the **Skill allow path**: call `cua.createBrowserTab` once for this workflow via `mcp__cua_repl.js`, **or** reuse an existing `cua_repl` tab from this session. Read the runtime documentation returned on first use. Do not use blank-tab or `about:blank` capability probes.
+Only after `mcp__cua_repl.js` is declared this turn (catalog gate above). Obtain a tab through the **Skill allow path**: open one cua tab via the documented factory for this workflow, **or** reuse an existing `cua_repl` tab from this session. Read the runtime documentation returned on first use. Do not use blank-tab or `about:blank` capability checks.
 
-Example when no browser was specified (single allowed `createBrowserTab` site in this Skill):
+Example when no browser was specified (single allowed tab-open site in this Skill):
 
 ```js
 var taskTab = await cua.createBrowserTab('iab', 'https://example.com', {visible:false});

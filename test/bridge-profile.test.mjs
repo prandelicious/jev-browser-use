@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { run } from '../skills/jev-browser-use/bridge.mjs';
+import { attachTab, run } from '../skills/jev-browser-use/bridge.mjs';
 
 const fixture = await readFile(new URL('./fixtures/agoda-property.ax.txt', import.meta.url), 'utf8');
 const genericFixture = await readFile(new URL('./fixtures/generic-property.ax.txt', import.meta.url), 'utf8');
@@ -29,7 +29,7 @@ function response(choice = 'DONE') {
 function tabFor(states) {
   let reads = 0;
   const clicks = [];
-  return {
+  const tab = {
     clicks,
     async getAXState() { return states[Math.min(reads++, states.length - 1)]; },
     async click(index) { clicks.push(index); },
@@ -37,6 +37,8 @@ function tabFor(states) {
     async pressKey() {},
     async reload() {},
   };
+  attachTab(tab);
+  return tab;
 }
 
 async function withFetch(handler, fn) {

@@ -50,10 +50,9 @@ function cdpConnectDuck() {
 }
 
 function sneakInWithDeclaredTools() {
-  return {
-    declaredTools: ['mcp__cua_repl.js'],
-    ...playwrightPageDuck(),
-  };
+  const tab = playwrightPageDuck();
+  tab.declaredTools = ['mcp__cua_repl.js'];
+  return tab;
 }
 
 function minimalRunOptions() {
@@ -120,15 +119,9 @@ test('run refuses tab that never went through attachTab', async () => {
   await assert.rejects(() => run(tabSurface(), minimalRunOptions()));
 });
 
-test('createSession run refuses tab that never went through attachTab', async () => {
-  const session = createSession(tabSurface(), {
+test('createSession run refuses tab that never went through attachTab', () => {
+  expectUnsupportedHost(() => createSession(tabSurface(), {
     allowedOrigins: ['https://example.com'],
     envFile: '/nonexistent/jev.env',
-  });
-  await assert.rejects(() => session.run({
-    goal: 'noop',
-    controls: [{ op: 'click', name: 'Rooms' }],
-    maxSteps: 1,
-    maxMs: 1000,
   }));
 });
