@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { run } from '../skills/jev-browser-use/bridge.mjs';
+import { createLiveRun, createSession, run } from '../skills/jev-browser-use/bridge.mjs';
 
 const fixture = await readFile(new URL('./fixtures/agoda-property.ax.txt', import.meta.url), 'utf8');
 const genericFixture = await readFile(new URL('./fixtures/generic-property.ax.txt', import.meta.url), 'utf8');
@@ -69,6 +69,35 @@ test('run sends compact projected state and executes the raw action index', asyn
   assert.equal(outcome.metrics.projectionMode, 'evidence-lanes');
   assert.equal(outcome.metrics.projectionAdapter, 'agoda-property-v1');
   assert.equal(outcome.metrics.active, true);
+  assert.equal(outcome.metrics.decisionTurns, 1);
+  assert.equal(typeof outcome.metrics.apiMs, 'number');
+  assert.ok(outcome.metrics.apiMs >= 0);
+});
+
+test('run metrics count every Jev decision attempt and live-run splits LLM from Jev', async () => {
+  const env = await envFile();
+  const live = createLiveRun();
+  live.beginLlmTurn();
+  const tab = tabFor([fixture, fixture, fixture, fixture, fixture]);
+  const session = createSession(tab, {
+    goal, controls: [{op:'click', name:'Rooms'}], allowedOrigins: [origin], envFile: env,
+    profileCacheEnabled: false, maxSteps: 2,
+  });
+  const outcome = await withFetch(async () => response('DONE'), () => {
+    live.endLlmTurn();
+    live.beginLlmTurn();
+    return session.run({goal, controls: [{op:'click', name:'Rooms'}], maxSteps: 1});
+  });
+  live.addJev(outcome);
+  live.endLlmTurn();
+  assert.equal(outcome.metrics.decisionTurns, 1);
+  assert.equal(outcome.sessionMetrics.decisions, 1);
+  assert.equal(outcome.sessionMetrics.apiMs, outcome.metrics.apiMs);
+  const snapshot = live.snapshot();
+  assert.equal(snapshot.llm.turns, 2);
+  assert.equal(snapshot.jev.turns, 1);
+  assert.equal(snapshot.jev.apiMs, outcome.metrics.apiMs);
+  assert.doesNotMatch(JSON.stringify(snapshot), /footer|https?:\/\/|Room size/i);
 });
 
 test('a warm run reads the same family profile as a cache hit', async () => {

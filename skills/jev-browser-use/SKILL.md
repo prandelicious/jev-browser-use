@@ -54,8 +54,8 @@ the size threshold.
 
 Each run exposes only count/timing metrics: `active`, `family`, `projectionAdapter` (`agoda-property-v1`, `generic-origin-v1`, or `raw`), `cacheHit`,
 `cacheRead`, `cacheWrite`, `rawChars`, `projectedChars`, `projectionMs`,
-`stateMode`, `fullProjectedChars`, `deltaAddedChars`, and
-`deltaRemovedChars`, and `projectionMode` (`evidence-lanes` or `raw`). `stateMode`
+`stateMode`, `fullProjectedChars`, `deltaAddedChars`,
+`deltaRemovedChars`, `projectionMode` (`evidence-lanes` or `raw`), `decisionTurns` (Jev `decide()` attempts in this `run()`, including retries), and `apiMs` (summed Jev HTTP time for those attempts). `createLiveRun()` records host/LLM turns separately from Jev turns; neither object contains page text. `stateMode`
 is `raw` for unsupported routes and `full` or `delta` for recognized pages. These metrics never contain page text, URLs,
 cache paths, or history. A smaller projection or delta is a
 transport/input-size metric, not evidence that the requested page fact is

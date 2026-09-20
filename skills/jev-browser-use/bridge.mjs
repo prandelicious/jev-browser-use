@@ -227,17 +227,56 @@ function result(status,history,state,startedAt,details={}) {
   return {status,handoff:handoff(status),history,state,elapsedMs:Math.round(performance.now()-startedAt),...details};
 }
 
+function withRunMetrics(metrics, history, priorCount) {
+  const runHistory = history.slice(priorCount);
+  return {
+    ...metrics,
+    decisionTurns: runHistory.length,
+    apiMs: runHistory.reduce((total, item) => total + (item.apiMs ?? 0), 0),
+  };
+}
+
+export function createLiveRun() {
+  const wallStartedAt = performance.now();
+  let llmTurns = 0;
+  let llmElapsedMs = 0;
+  let llmStartedAt = null;
+  const jev = {turns:0, apiMs:0, elapsedMs:0};
+  return {
+    beginLlmTurn() { llmStartedAt = performance.now(); },
+    endLlmTurn() {
+      if (llmStartedAt == null) return;
+      llmElapsedMs += performance.now() - llmStartedAt;
+      llmTurns += 1;
+      llmStartedAt = null;
+    },
+    addJev(outcome) {
+      jev.turns += outcome.metrics?.decisionTurns ?? 0;
+      jev.apiMs += outcome.metrics?.apiMs ?? 0;
+      jev.elapsedMs += outcome.elapsedMs ?? 0;
+    },
+    snapshot() {
+      return {
+        llm: {turns:llmTurns, elapsedMs:Math.round(llmElapsedMs)},
+        jev: {turns:jev.turns, apiMs:Math.round(jev.apiMs), elapsedMs:Math.round(jev.elapsedMs)},
+        wallMs: Math.round(performance.now() - wallStartedAt),
+      };
+    },
+  };
+}
+
 // This accepts only an already-authorized cua_repl tab, never opens a browser.
 export async function run(tab,{goal,controls=[],policy,envFile,provider,model,allowedOrigins,maxSteps=10,minConfidence=0.55,maxMs=45000,decisionTimeoutMs=20000,maxDecisionRetries=1,waitPollMs=750,profileCacheDir,profileCacheEnabled=true,incrementalStateEnabled=true,incrementalStateMaxRatio=0.65},prior=[]) {
   if (typeof goal !== 'string' || !goal || !Array.isArray(controls) || (!controls.length && !policy) || controls.some(control => !validateControl(control)) || !Number.isInteger(maxSteps) || maxSteps < 1 || maxSteps > 30 || !Number.isFinite(maxMs) || maxMs < 1 || maxMs > 45000 || !Number.isFinite(decisionTimeoutMs) || decisionTimeoutMs < 1000 || decisionTimeoutMs > 30000 || !Number.isInteger(maxDecisionRetries) || maxDecisionRetries < 0 || maxDecisionRetries > 2 || !Number.isFinite(minConfidence) || minConfidence < 0.55 || minConfidence > 1 || !Number.isFinite(waitPollMs) || waitPollMs < 100 || waitPollMs > 5000 || typeof incrementalStateEnabled !== 'boolean' || !Number.isFinite(incrementalStateMaxRatio) || incrementalStateMaxRatio < 0.1 || incrementalStateMaxRatio > 1 || !Array.isArray(allowedOrigins) || !allowedOrigins.length) throw new Error('Invalid task contract');
   const history = [...prior];
   const startedAt = performance.now();
+  const priorCount = history.length;
   let waits = 0;
   let decisionRetries = 0;
   let previousRawState = null;
   let rawState = await tab.getAXState({emit:false,disableDiffing:true});
   let metrics = emptyProfileMetrics(rawState.length);
-  const runResult = (status, resultHistory, resultState, details={}) => result(status,resultHistory,resultState,startedAt,{metrics,...details});
+  const runResult = (status, resultHistory, resultState, details={}) => result(status,resultHistory,resultState,startedAt,{metrics:withRunMetrics(metrics, resultHistory, priorCount),...details});
   for (let step=0;step<maxSteps;step++) {
     checkOrigin(rawState,allowedOrigins);
     if (performance.now()-startedAt > maxMs) return runResult('budget',history,rawState);
