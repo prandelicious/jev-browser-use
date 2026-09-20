@@ -73,10 +73,18 @@ Only for installation, provider changes, or API troubleshooting, read [API integ
 
 `cua_repl` is normally a **direct tool namespace**, exposed as `mcp__cua_repl.js`
 and `mcp__cua_repl.js_reset`. It is not a nested `tools.*` method inside
-`functions.exec`. The app-managed plugin intentionally omits these tools from
-code-mode and deferred tool lists. Therefore an empty
-`ALL_TOOLS.filter(... /cua|browser/ ...)` result does **not** show that the browser
-plugin is missing. Do not repeatedly search that list or stop on that basis.
+`functions.exec`. On **Codex**, the app-managed plugin intentionally omits these
+tools from code-mode and deferred tool lists, so an empty
+`ALL_TOOLS.filter(... /cua|browser/ ...)` result is inconclusive there. Do not
+repeatedly search that Codex list or stop on that basis alone.
+
+On **Cursor Cloud Agent**, this turn's declared tools plus `GetDynamicTools` are
+the catalog. Cursor GUI Computer Use is a `computerUse` subagent (mouse,
+keyboard, screenshots on desktop Chrome), not `mcp__cua_repl.js`. An empty
+`cua|browser|iab|repl` match on that catalog is conclusive: Jev cannot bind a
+tab to the Computer Use Chrome session. Completing Cursor Computer Use or
+installing this Skill does not attach `cua_repl`. Do not wrap Bun.WebView,
+Playwright, or a separate CDP driver as a substitute.
 
 1. Inspect the direct tool declarations available in this turn before searching
    generic tool catalogs. Prefer `mcp__cua_repl.js` when present. Use its documented
@@ -136,7 +144,8 @@ next invocation. Keep `taskTab` for subsequent navigation and the Jev loop.
 
 | Observation | Correct conclusion / next step |
 | --- | --- |
-| No `cua` result in `ALL_TOOLS` | Inconclusive; inspect direct tool declarations. |
+| No `cua` result in Codex `ALL_TOOLS` | Inconclusive on Codex; inspect direct tool declarations. |
+| Cursor Cloud Agent has `computerUse` but no `mcp__cua_repl.js` | Conclusive on Cursor: GUI Computer Use is attached, Jev tab API is not. Report the blocker; do not wrap Bun.WebView, Playwright, or CDP. |
 | Browser panel opens | Display works; control has not been tested. |
 | Direct CUA call returns AX state | Browser runtime works; continue with Jev. |
 | `config.apiKey` is absent | Expected; use `envFile` through the helper. |
@@ -230,4 +239,4 @@ For normal tasks, report result, session metrics, Codex handoffs, elapsed loop t
 
 ## Runtime requirements
 
-This Skill requires a host with `cua_repl` plus Node module imports, filesystem access, and fetch. If another agent lacks that runtime, explain the incompatibility; the Skill alone does not provide browser permissions or tools.
+This Skill requires a host with `cua_repl` plus Node module imports, filesystem access, and fetch. Cursor Cloud Agent GUI Computer Use is not that runtime. If another agent lacks `mcp__cua_repl.js` bound to Chrome or the in-app browser, explain the incompatibility; the Skill alone does not provide browser permissions or tools.
