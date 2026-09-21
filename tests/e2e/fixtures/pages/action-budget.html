@@ -1,7 +1,19 @@
 <!doctype html>
-<html lang="en"><body>
-<button type="button">Step one</button>
-<button type="button" hidden>Step two</button>
-<button type="button" hidden>Step three</button>
-<p hidden>BUDGET_COMPLETE</p>
+<html lang="en"><head><meta charset="utf-8"><title>action-budget</title></head>
+<body>
+<button type="button" id="one">Step one</button>
+<button type="button" id="two" hidden>Step two</button>
+<button type="button" id="three" hidden>Step three</button>
+<p id="done" hidden>BUDGET_COMPLETE</p>
+<script>
+  document.getElementById('one').addEventListener('click', () => {
+    document.getElementById('two').hidden = false;
+  });
+  document.getElementById('two').addEventListener('click', () => {
+    document.getElementById('three').hidden = false;
+  });
+  document.getElementById('three').addEventListener('click', () => {
+    document.getElementById('done').hidden = false;
+  });
+</script>
 </body></html>

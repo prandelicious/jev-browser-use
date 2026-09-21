@@ -1,6 +1,17 @@
 <!doctype html>
-<html lang="en"><body>
+<html lang="en"><head><meta charset="utf-8"><title>scroll-find</title>
+<style>
+  body { margin: 0; }
+  #above { height: calc(100vh + 120px); }
+</style>
+</head>
+<body>
 <div id="above">padding</div>
-<button type="button">Show more</button>
-<p hidden>SCROLLED_FOUND</p>
+<button type="button" id="more">Show more</button>
+<p id="found" hidden style="position:fixed;top:0;left:0">SCROLLED_FOUND</p>
+<script>
+  document.getElementById('more').addEventListener('click', () => {
+    document.getElementById('found').hidden = false;
+  });
+</script>
 </body></html>

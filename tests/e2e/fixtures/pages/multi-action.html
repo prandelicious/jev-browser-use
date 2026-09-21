@@ -1,7 +1,19 @@
 <!doctype html>
-<html lang="en"><body>
-<button type="button">Open section</button>
-<button type="button" hidden>Next</button>
-<button type="button" hidden>Select target</button>
-<p hidden>MULTI_DONE</p>
+<html lang="en"><head><meta charset="utf-8"><title>multi-action</title></head>
+<body>
+<button type="button" id="open">Open section</button>
+<button type="button" id="next" hidden>Next</button>
+<button type="button" id="target" hidden>Select target</button>
+<p id="done" hidden>MULTI_DONE</p>
+<script>
+  document.getElementById('open').addEventListener('click', () => {
+    document.getElementById('next').hidden = false;
+  });
+  document.getElementById('next').addEventListener('click', () => {
+    document.getElementById('target').hidden = false;
+  });
+  document.getElementById('target').addEventListener('click', () => {
+    document.getElementById('done').hidden = false;
+  });
+</script>
 </body></html>

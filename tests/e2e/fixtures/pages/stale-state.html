@@ -1,5 +1,14 @@
 <!doctype html>
-<html lang="en"><body>
+<html lang="en"><head><meta charset="utf-8"><title>stale-state</title></head>
+<body>
 <button type="button">Commit</button>
-<p hidden>STALE_EXECUTED</p>
+<script>
+  window.__mutateAfterAx = () => {
+    if (document.getElementById('mut')) return;
+    const p = document.createElement('p');
+    p.id = 'mut';
+    p.textContent = 'mutated-v2';
+    document.body.appendChild(p);
+  };
+</script>
 </body></html>

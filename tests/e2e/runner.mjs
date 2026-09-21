@@ -61,11 +61,13 @@ export async function runE2E(argv = process.argv.slice(2), { cwd = process.cwd()
         result.durationMs = Date.now() - scenarioStarted;
         results.push(result);
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (/chromium|chrome|DevTools|CDP/i.test(message)) throw error;
         results.push({
           id,
           status: 'FAIL',
           durationMs: Date.now() - scenarioStarted,
-          failures: [{ scenario: id, assertion: 'scenario execution', expected: 'complete', actual: error instanceof Error ? error.message : String(error) }],
+          failures: [{ scenario: id, assertion: 'scenario execution', expected: 'complete', actual: message }],
         });
       }
     }
@@ -83,7 +85,7 @@ export async function runE2E(argv = process.argv.slice(2), { cwd = process.cwd()
       environment: {
         bunVersion: process.versions.bun ?? 'none',
         platform: process.platform,
-        backend: 'in-process-fixture-tab',
+        backend: 'chromium-harness',
         nodeVersion: process.version,
       },
       scenarios: results,
@@ -95,7 +97,7 @@ export async function runE2E(argv = process.argv.slice(2), { cwd = process.cwd()
     return exitCodeFor(status);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const infra = /EADDRINUSE|ENOENT|listen/i.test(message);
+    const infra = /EADDRINUSE|ENOENT|listen|chromium|chrome|DevTools|CDP/i.test(message);
     status = infra ? 'INFRA_ERROR' : 'RUNNER_ERROR';
     try { await processes.shutdown(); } catch { /* ignore */ }
     const report = {

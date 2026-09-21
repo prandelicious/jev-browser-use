@@ -2,7 +2,7 @@ import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { attachTab, run } from '../../skills/jev-browser-use/bridge.mjs';
-import { createFixtureTab } from './tab.mjs';
+import { createChromiumTab } from './harness.mjs';
 import { startJevMock } from './jev/mock-server.mjs';
 
 async function envFor(mockUrl) {
@@ -33,10 +33,6 @@ const pages = {
 export const SCENARIOS = {
   'basic-click': {
     page: pages['basic-click'],
-    sequence: [
-      '1 button Open details',
-      '1 button Open details\n2 text DETAILS_OPEN',
-    ],
     script: [
       { step: 0, includes: 'Open details', choice: 'a0' },
       { step: 1, includes: 'DETAILS_OPEN', choice: 'DONE' },
@@ -59,11 +55,6 @@ export const SCENARIOS = {
   },
   'scroll-find': {
     page: pages['scroll-find'],
-    sequence: [
-      '1 text padding',
-      '1 text padding\n2 button Show more',
-      '1 text padding\n2 button Show more\n3 text SCROLLED_FOUND',
-    ],
     script: [
       { step: 0, excludes: 'Show more', choice: 'a0' },
       { step: 1, includes: 'Show more', choice: 'a1' },
@@ -85,12 +76,6 @@ export const SCENARIOS = {
   },
   'multi-action': {
     page: pages['multi-action'],
-    sequence: [
-      '1 button Open section',
-      '1 button Open section\n2 button Next',
-      '1 button Open section\n2 button Next\n3 button Select target',
-      '1 button Open section\n2 button Next\n3 button Select target\n4 text MULTI_DONE',
-    ],
     script: [
       { step: 0, includes: 'Open section', choice: 'a0' },
       { step: 1, includes: 'Next', choice: 'a1' },
@@ -116,7 +101,6 @@ export const SCENARIOS = {
   },
   handoff: {
     page: pages.handoff,
-    sequence: ['1 text HANDOFF_ONLY'],
     script: [{ step: 0, includes: 'HANDOFF_ONLY', choice: 'BLOCKED' }],
     task: (origin) => ({
       goal: 'Use the unsupported visual widget',
@@ -133,11 +117,6 @@ export const SCENARIOS = {
   },
   'stale-state': {
     page: pages['stale-state'],
-    sequence: [
-      '1 button Commit',
-      '1 button Commit\n2 text mutated-v2',
-    ],
-    staleAfterReads: 1,
     script: [
       { step: 0, includes: 'Commit', excludes: 'mutated-v2', choice: 'a0' },
       { step: 1, includes: 'mutated-v2', choice: 'DONE' },
@@ -158,12 +137,6 @@ export const SCENARIOS = {
   },
   'action-budget': {
     page: pages['action-budget'],
-    sequence: [
-      '1 button Step one',
-      '1 button Step one\n2 button Step two',
-      '1 button Step one\n2 button Step two\n3 button Step three',
-      '1 button Step one\n2 button Step two\n3 button Step three\n4 text BUDGET_COMPLETE',
-    ],
     script: [
       { step: 0, includes: 'Step one', choice: 'a0' },
       { step: 1, includes: 'Step two', choice: 'a1' },
@@ -188,7 +161,6 @@ export const SCENARIOS = {
   },
   cancellation: {
     page: pages.cancellation,
-    sequence: ['1 button Start wait'],
     abortBeforeRun: true,
     script: [{ step: 0, includes: 'Start wait', choice: 'WAIT' }],
     task: (origin) => ({
@@ -208,12 +180,9 @@ export const SCENARIOS = {
 export async function runScenario(id, { origin, processes }) {
   const spec = SCENARIOS[id];
   if (!spec) throw new Error(`Unknown scenario ${id}`);
-  const tab = createFixtureTab({
-    origin,
-    page: spec.page,
-    sequence: spec.sequence,
-    staleAfterReads: spec.staleAfterReads,
-  });
+  const session = await createChromiumTab({ url: `${origin}/${spec.page}` });
+  processes.track({ purpose: `chromium-${id}`, handle: session, stop: session.stop, force: session.kill });
+  const tab = session.tab;
   const mock = await startJevMock({ scenarioId: id, script: spec.script });
   processes.track({ purpose: `jev-mock-${id}`, handle: mock, stop: mock.stop });
   const envFile = await envFor(mock.url);
