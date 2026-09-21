@@ -137,6 +137,7 @@ export async function decide({envFile,provider='typesafe',model,goal,state,actio
   const env = envFile ? parseEnv(await readFile(envFile,'utf8')) : {};
   const key = env[route.keyName] ?? env[route.keyName.toLowerCase()];
   if (!key) throw new Error(`${route.keyName} is missing`);
+  const endpoint = env.JEV_API_ENDPOINT || route.endpoint;
   const criteria = Object.fromEntries(actions.map((action,index) => [`a${index}`,action.description]));
   criteria.DONE = 'Goal fully achieved; stop for independent Codex verification';
   criteria.BLOCKED = 'Cannot safely complete with allowed actions; return control to Codex';
@@ -146,7 +147,7 @@ export async function decide({envFile,provider='typesafe',model,goal,state,actio
   const startedAt = performance.now();
   let response;
   try {
-    response = await fetch(route.endpoint,{method:'POST',redirect:'error',signal:AbortSignal.timeout(timeoutMs),headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body});
+    response = await fetch(endpoint,{method:'POST',redirect:'error',signal:AbortSignal.timeout(timeoutMs),headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body});
   } catch { throw new Error(`${provider} transport failure or timeout`); }
   if (!response.ok) throw new Error(`${provider} HTTP ${response.status}`);
   let result;
@@ -257,14 +258,14 @@ async function execute(tab, action) {
 }
 
 function handoff(status) {
-  return ({low_confidence:'low_confidence',blocked:'model_blocked',no_progress:'no_progress',loading_timeout:'loading_timeout',decision_error:'decision_error',action_error:'action_error',budget:'budget',step_limit:'step_limit'})[status] ?? null;
+  return ({low_confidence:'low_confidence',blocked:'model_blocked',no_progress:'no_progress',loading_timeout:'loading_timeout',decision_error:'decision_error',action_error:'action_error',budget:'budget',step_limit:'step_limit',cancelled:'cancelled'})[status] ?? null;
 }
 
 function result(status,history,state,startedAt,details={}) {
   return {status,handoff:handoff(status),history,state,elapsedMs:Math.round(performance.now()-startedAt),...details};
 }
 
-export async function run(tab,{goal,controls=[],policy,envFile,provider,model,allowedOrigins,maxSteps=10,minConfidence=0.55,maxMs=45000,decisionTimeoutMs=20000,maxDecisionRetries=1,waitPollMs=750,profileCacheDir,profileCacheEnabled=true,incrementalStateEnabled=true,incrementalStateMaxRatio=0.65},prior=[]) {
+export async function run(tab,{goal,controls=[],policy,envFile,provider,model,allowedOrigins,maxSteps=10,minConfidence=0.55,maxMs=45000,decisionTimeoutMs=20000,maxDecisionRetries=1,waitPollMs=750,profileCacheDir,profileCacheEnabled=true,incrementalStateEnabled=true,incrementalStateMaxRatio=0.65,signal},prior=[]) {
   requireAttachedTab(tab);
   if (typeof goal !== 'string' || !goal || !Array.isArray(controls) || (!controls.length && !policy) || controls.some(control => !validateControl(control)) || !Number.isInteger(maxSteps) || maxSteps < 1 || maxSteps > 30 || !Number.isFinite(maxMs) || maxMs < 1 || maxMs > 45000 || !Number.isFinite(decisionTimeoutMs) || decisionTimeoutMs < 1000 || decisionTimeoutMs > 30000 || !Number.isInteger(maxDecisionRetries) || maxDecisionRetries < 0 || maxDecisionRetries > 2 || !Number.isFinite(minConfidence) || minConfidence < 0.55 || minConfidence > 1 || !Number.isFinite(waitPollMs) || waitPollMs < 100 || waitPollMs > 5000 || typeof incrementalStateEnabled !== 'boolean' || !Number.isFinite(incrementalStateMaxRatio) || incrementalStateMaxRatio < 0.1 || incrementalStateMaxRatio > 1 || !Array.isArray(allowedOrigins) || !allowedOrigins.length) throw new Error('Invalid task contract');
   const history = [...prior];
@@ -275,7 +276,9 @@ export async function run(tab,{goal,controls=[],policy,envFile,provider,model,al
   let rawState = await tab.getAXState({emit:false,disableDiffing:true});
   let metrics = emptyProfileMetrics(rawState.length);
   const runResult = (status, resultHistory, resultState, details={}) => result(status,resultHistory,resultState,startedAt,{metrics,...details});
+  if (signal?.aborted) return runResult('cancelled',history,rawState);
   for (let step=0;step<maxSteps;step++) {
+    if (signal?.aborted) return runResult('cancelled',history,rawState);
     checkOrigin(rawState,allowedOrigins);
     if (performance.now()-startedAt > maxMs) return runResult('budget',history,rawState);
     const actions = [...availableActions(rawState,controls),...discoverActions(rawState,policy)].filter((action,index,all) => {
