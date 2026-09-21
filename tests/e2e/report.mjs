@@ -1,3 +1,7 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 export const SCHEMA_VERSION = 1;
 
 export const EXIT = {
@@ -38,4 +42,13 @@ export function buildReport({
 
 export function exitCodeFor(status) {
   return EXIT[status] ?? EXIT.RUNNER_ERROR;
+}
+
+export async function persistReport(report) {
+  const dir = join(tmpdir(), `jev-e2e-${process.pid}-${Date.now()}`);
+  await mkdir(dir, { recursive: true });
+  const file = join(dir, 'report.json');
+  const withPath = { ...report, artifacts: { ...report.artifacts, report: file } };
+  await writeFile(file, `${JSON.stringify(withPath)}\n`);
+  return withPath;
 }

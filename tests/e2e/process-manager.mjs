@@ -15,8 +15,7 @@ export function createProcessManager() {
           new Promise((_, reject) => setTimeout(() => reject(new Error(`${child.purpose} shutdown timeout`)), timeoutMs)),
         ]);
       } catch (error) {
-        errors.push(error);
-        try { child.force?.(); } catch { /* ignore */ }
+        try { child.force?.(); } catch { errors.push(error); }
       }
     }
     children.length = 0;

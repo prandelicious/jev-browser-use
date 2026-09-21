@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { selectSuitesFromPaths, scenariosForSuites } from '../tests/e2e/selection.mjs';
+import { selectSuitesFromPaths, scenariosForSuites, changedPathsSince } from '../tests/e2e/selection.mjs';
 
 test('MCP-unrelated adapter path mapping is not used; skill changes select gate', () => {
   const { selectedSuites, reasons } = selectSuitesFromPaths(['skills/jev-browser-use/bridge.mjs']);
@@ -23,4 +23,10 @@ test('gate suite contains the core scenarios', () => {
   for (const id of ['basic-click', 'scroll-find', 'multi-action', 'handoff', 'stale-state', 'action-budget', 'cancellation']) {
     assert.ok(ids.includes(id), id);
   }
+});
+
+test('empty change set and --changed-since plumbing select gate', async () => {
+  assert.deepEqual(selectSuitesFromPaths([]).selectedSuites, ['gate']);
+  const paths = await changedPathsSince('HEAD');
+  assert.equal(Array.isArray(paths), true);
 });

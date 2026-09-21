@@ -1,5 +1,5 @@
 import { changedPathsSince, selectSuitesFromPaths, scenariosForSuites } from './selection.mjs';
-import { buildReport, exitCodeFor } from './report.mjs';
+import { buildReport, exitCodeFor, persistReport } from './report.mjs';
 import { createProcessManager } from './process-manager.mjs';
 import { startFixtureServer } from './fixtures/server.mjs';
 import { runScenario, SCENARIOS } from './scenarios.mjs';
@@ -74,7 +74,7 @@ export async function runE2E(argv = process.argv.slice(2), { cwd = process.cwd()
 
     status = results.some((item) => item.status === 'FAIL') ? 'FAIL' : 'PASS';
     if (!scenarioIds.length) status = 'PASS';
-    const report = buildReport({
+    const report = await persistReport(buildReport({
       status,
       selection: {
         changedPaths: changedPaths.length ? changedPaths : undefined,
@@ -90,7 +90,7 @@ export async function runE2E(argv = process.argv.slice(2), { cwd = process.cwd()
       },
       scenarios: results,
       durationMs: Date.now() - started,
-    });
+    }));
     await processes.shutdown();
     if (args.json) stdout.write(`${JSON.stringify(report)}\n`);
     else stderr.write(`${report.status} passed=${report.summary.passed} failed=${report.summary.failed}\n`);
@@ -100,14 +100,14 @@ export async function runE2E(argv = process.argv.slice(2), { cwd = process.cwd()
     const infra = /EADDRINUSE|ENOENT|listen|chromium|chrome|DevTools|CDP/i.test(message);
     status = infra ? 'INFRA_ERROR' : 'RUNNER_ERROR';
     try { await processes.shutdown(); } catch { /* ignore */ }
-    const report = {
+    const report = await persistReport({
       schemaVersion: 1,
       status,
       suites: [],
       summary: { passed: 0, failed: 0, skipped: 0, durationMs: Date.now() - started },
       failures: [{ scenario: 'runner', assertion: status === 'INFRA_ERROR' ? 'environment' : 'runner', expected: 'start', actual: message }],
       artifacts: {},
-    };
+    });
     if (argv.includes('--json')) stdout.write(`${JSON.stringify(report)}\n`);
     stderr.write(`${status}: ${message}\n`);
     return exitCodeFor(status);
