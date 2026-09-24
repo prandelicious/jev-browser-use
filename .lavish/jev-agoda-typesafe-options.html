@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en" data-theme="luxury">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jev × Agoda — ten designs</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :where(.grid, .flex, .layout-grid, .layout-flex) > *,
+    :where([style*="display: grid"], [style*="display:grid"], [style*="display: flex"], [style*="display:flex"]) > * { min-width: 0; }
+    :where(p, h1, h2, h3, h4, h5, h6, li, dd, blockquote, figcaption, td, th, .badge, .label) { overflow-wrap: anywhere; }
+    :where(img, svg, video, canvas, iframe) { max-width: 100%; height: auto; }
+    body { background: radial-gradient(circle at 8% 0%, color-mix(in oklab, var(--color-primary) 15%, transparent), transparent 32rem), var(--color-base-200); }
+    .eyebrow { letter-spacing: .16em; text-transform: uppercase; font-size: .68rem; font-weight: 700; }
+    .option-card { transition: transform .18s ease, border-color .18s ease; }
+    .option-card:hover { transform: translateY(-2px); border-color: color-mix(in oklab, var(--color-primary) 65%, transparent); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .scorebar { height: .42rem; border-radius: 999px; background: color-mix(in oklab, var(--color-base-content) 12%, transparent); overflow: hidden; }
+    .scorebar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--color-primary), var(--color-secondary)); }
+    .diagram-surface { background: color-mix(in oklab, var(--color-base-100) 92%, var(--color-primary)); }
+    svg text { font-family: ui-sans-serif, system-ui, sans-serif; }
+  </style>
+</head>
+<body class="text-base-content">
+  <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
+    <header class="mb-10 grid gap-8 lg:grid-cols-[1.25fr_.75fr] lg:items-end">
+      <div>
+        <p class="eyebrow text-primary">Architecture review · 2026-09-19</p>
+        <h1 class="mt-3 max-w-4xl text-4xl font-black tracking-tight sm:text-6xl">How should Jev browse a dense Agoda page?</h1>
+        <p class="mt-5 max-w-3xl text-lg leading-8 text-base-content/70">Ten ways to turn a 63–74k-character accessibility tree into a safe, typed browser decision. The recommendation is deliberately conservative: compress what Jev sees, keep execution deterministic, and make uncertainty useful.</p>
+      </div>
+      <div class="card card-border bg-base-100/80 shadow-xl">
+        <div class="card-body p-6">
+          <p class="eyebrow text-secondary">Recommendation</p>
+          <h2 class="card-title mt-1 text-2xl">Typed evidence compiler</h2>
+          <p class="text-sm leading-6 text-base-content/70">Deterministically extract bounded evidence and unique allowed action candidates, then use Jev for narrow Choice/Noul judgments. Raw AX remains authoritative.</p>
+          <div class="mt-3 flex flex-wrap gap-2"><span class="badge badge-primary">best fit</span><span class="badge badge-soft badge-success">safe fallback</span><span class="badge badge-soft badge-info">site-agnostic core</span></div>
+        </div>
+      </div>
+    </header>
+
+    <section class="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Incident facts">
+      <div class="stat rounded-box border border-base-content/10 bg-base-100 shadow-sm"><div class="stat-title">Observed raw AX</div><div class="stat-value text-primary">63–74k</div><div class="stat-desc">characters in Agoda trials</div></div>
+      <div class="stat rounded-box border border-base-content/10 bg-base-100 shadow-sm"><div class="stat-title">Original ceiling</div><div class="stat-value text-error">24k</div><div class="stat-desc">guard fired before Jev</div></div>
+      <div class="stat rounded-box border border-base-content/10 bg-base-100 shadow-sm"><div class="stat-title">Initial Jev calls</div><div class="stat-value text-error">0</div><div class="stat-desc">the bridge threw first</div></div>
+      <div class="stat rounded-box border border-base-content/10 bg-base-100 shadow-sm"><div class="stat-title">Current projection</div><div class="stat-value text-success">~19.9k</div><div class="stat-desc">about 69% smaller, not yet success</div></div>
+    </section>
+
+    <section class="card card-border diagram-surface mb-10 overflow-hidden shadow-lg" aria-labelledby="flow-title">
+      <div class="card-body p-5 sm:p-8">
+        <div class="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p class="eyebrow text-primary">The seam that matters</p><h2 id="flow-title" class="mt-1 text-2xl font-bold">Separate evidence preparation from browser execution</h2></div><span class="badge badge-outline">model sees a projection; code sees the page</span></div>
+        <svg viewBox="0 0 1200 300" role="img" aria-labelledby="flow-svg-title flow-svg-desc" class="w-full">
+          <title id="flow-svg-title">Recommended Jev browser decision flow</title>
+          <desc id="flow-svg-desc">A raw accessibility tree is compiled into bounded structured evidence, sent to typed Jev questions, then mapped back to a fresh raw action and verified.</desc>
+          <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs>
+          <g id="raw-node"><rect x="20" y="92" width="205" height="110" rx="18" fill="none" stroke="currentColor" stroke-width="2"/><text x="122" y="123" text-anchor="middle" font-size="16" font-weight="700">raw AX tree</text><text x="122" y="151" text-anchor="middle" font-size="13">63–74k chars</text><text x="122" y="178" text-anchor="middle" font-size="12" opacity=".68">authoritative browser facts</text></g>
+          <g id="compiler-node"><rect x="275" y="70" width="220" height="155" rx="18" fill="currentColor" fill-opacity=".08" stroke="currentColor" stroke-width="2"/><text x="385" y="103" text-anchor="middle" font-size="16" font-weight="700">evidence compiler</text><text x="385" y="133" text-anchor="middle" font-size="12">origin + readiness</text><text x="385" y="155" text-anchor="middle" font-size="12">unique safe actions</text><text x="385" y="177" text-anchor="middle" font-size="12">goal-relevant evidence</text><text x="385" y="199" text-anchor="middle" font-size="12" opacity=".68">bounded, deterministic</text></g>
+          <g id="typed-node"><rect x="545" y="70" width="220" height="155" rx="18" fill="currentColor" fill-opacity=".08" stroke="currentColor" stroke-width="2"/><text x="655" y="103" text-anchor="middle" font-size="16" font-weight="700">typed questions</text><text x="655" y="133" text-anchor="middle" font-size="12">Choice: next action</text><text x="655" y="155" text-anchor="middle" font-size="12">Noul: target present?</text><text x="655" y="177" text-anchor="middle" font-size="12">Choice: page phase</text><text x="655" y="199" text-anchor="middle" font-size="12" opacity=".68">probabilities + confidence</text></g>
+          <g id="execution-node"><rect x="815" y="70" width="165" height="155" rx="18" fill="currentColor" fill-opacity=".08" stroke="currentColor" stroke-width="2"/><text x="897" y="103" text-anchor="middle" font-size="16" font-weight="700">code owns</text><text x="897" y="133" text-anchor="middle" font-size="12">ID → raw index</text><text x="897" y="155" text-anchor="middle" font-size="12">fresh-state check</text><text x="897" y="177" text-anchor="middle" font-size="12">execute or handoff</text><text x="897" y="199" text-anchor="middle" font-size="12" opacity=".68">never trust model indices</text></g>
+          <g id="verify-node"><rect x="1030" y="92" width="145" height="110" rx="18" fill="none" stroke="currentColor" stroke-width="2"/><text x="1102" y="123" text-anchor="middle" font-size="16" font-weight="700">verify</text><text x="1102" y="151" text-anchor="middle" font-size="12">fresh AX + visual</text><text x="1102" y="178" text-anchor="middle" font-size="12" opacity=".68">needs_verification</text></g>
+          <path d="M225 147 H267" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/><path d="M495 147 H537" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/><path d="M765 147 H807" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/><path d="M980 147 H1022" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="250" y="132" text-anchor="middle" font-size="11" opacity=".68">compile</text><text x="520" y="132" text-anchor="middle" font-size="11" opacity=".68">ask</text><text x="790" y="132" text-anchor="middle" font-size="11" opacity=".68">map</text><text x="1005" y="132" text-anchor="middle" font-size="11" opacity=".68">check</text>
+        </svg>
+      </div>
+    </section>
+
+    <section class="mb-10" aria-labelledby="scorecard-title">
+      <div class="mb-4"><p class="eyebrow text-primary">Decision scorecard</p><h2 id="scorecard-title" class="mt-1 text-3xl font-bold">Ten elegant solutions, ranked by leverage</h2><p class="mt-2 max-w-3xl text-base-content/70">Scores are design judgments against this repository’s constraints: dense AX, safe execution, low model input, privacy, site portability, and implementation locality. Higher is better.</p></div>
+      <div class="overflow-x-auto rounded-box border border-base-content/10 bg-base-100 shadow-lg"><table class="table table-zebra table-sm"><thead><tr><th>#</th><th>Design</th><th>Core move</th><th>Fit</th><th>Safety</th><th>Cost</th><th>Portability</th><th>Complexity</th><th>Verdict</th></tr></thead><tbody>
+        <tr class="bg-primary/10 font-semibold"><td>1</td><td>Typed evidence compiler</td><td>Bounded evidence + typed action IDs</td><td>5</td><td>5</td><td>5</td><td>5</td><td>3</td><td><span class="badge badge-primary">best</span></td></tr>
+        <tr><td>2</td><td>Deterministic evidence lanes</td><td>Project header, actions, direct goal evidence</td><td>5</td><td>5</td><td>5</td><td>4</td><td>2</td><td><span class="badge badge-soft badge-success">strong baseline</span></td></tr>
+        <tr><td>3</td><td>Line retrieval + Jev reranking</td><td>Shortlist lines, select evidence with Choice/Noul</td><td>4</td><td>4</td><td>3</td><td>5</td><td>4</td><td><span class="badge badge-soft badge-info">best extension</span></td></tr>
+        <tr><td>4</td><td>Semantic state delta</td><td>Send self-contained changes after first turn</td><td>4</td><td>4</td><td>4</td><td>4</td><td>3</td><td><span class="badge badge-soft">use later</span></td></tr>
+        <tr><td>5</td><td>Typed AX intermediate representation</td><td>Compile raw nodes into stable typed records</td><td>5</td><td>5</td><td>4</td><td>5</td><td>4</td><td><span class="badge badge-soft badge-info">excellent seam</span></td></tr>
+        <tr><td>6</td><td>Viewport / region pagination</td><td>Ask browser for smaller page regions</td><td>3</td><td>4</td><td>4</td><td>3</td><td>4</td><td><span class="badge badge-soft">API-dependent</span></td></tr>
+        <tr><td>7</td><td>Structural profile cache</td><td>Persist safe page-family vocabulary</td><td>4</td><td>4</td><td>5</td><td>2</td><td>4</td><td><span class="badge badge-soft">optimization</span></td></tr>
+        <tr><td>8</td><td>Confidence-gated action router</td><td>Act, wait, verify, or hand off by confidence</td><td>4</td><td>5</td><td>4</td><td>5</td><td>3</td><td><span class="badge badge-soft badge-warning">required guard</span></td></tr>
+        <tr><td>9</td><td>Speculative fan-out</td><td>Ask action, readiness, and phase together</td><td>4</td><td>4</td><td>4</td><td>5</td><td>3</td><td><span class="badge badge-soft">latency win</span></td></tr>
+        <tr><td>10</td><td>Reasoning-model fallback</td><td>Escalate dense or ambiguous cases</td><td>3</td><td>4</td><td>2</td><td>5</td><td>3</td><td><span class="badge badge-soft badge-warning">escape hatch</span></td></tr>
+      </tbody></table></div>
+    </section>
+
+    <section class="mb-10 grid gap-4 lg:grid-cols-2" aria-label="Ten solution details">
+      <article class="option-card card card-border bg-base-100 shadow-sm"><div class="card-body"><div class="flex items-start justify-between gap-3"><h3 class="card-title">1 · Typed evidence compiler</h3><span class="badge badge-primary">recommend</span></div><p>One deep module accepts raw AX, goal, and allowed controls. It returns a bounded state object plus a private mapping from model-facing action IDs to fresh raw targets.</p><p class="text-sm text-base-content/65"><strong>TypeSafe shape:</strong> Choice for <span class="mono">next</span>; Noul for target/readiness; optional Choice for page phase.</p></div></article>
+      <article class="option-card card card-border bg-base-100 shadow-sm"><div class="card-body"><h3 class="card-title">2 · Deterministic evidence lanes</h3><p>Keep the current projection idea: compact origin header, exact permitted actions, and direct evidence matching the goal. It is the smallest fix and already clears the 24k failure.</p><p class="text-sm text-base-content/65"><strong>Limit:</strong> keyword lanes can miss paraphrases and dynamic labels; add a semantic selector only where needed.</p></div></article>
+      <article class="option-card card card-border bg-base-100 shadow-sm"><div class="card-body"><h3 class="card-title">3 · Line retrieval + Jev reranking</h3><p>Use code to tag and shortlist AX lines, then ask Jev to choose the best evidence line or say <span class="mono">NONE</span>. Keep the source line ID local and copy only selected text into the next state.</p><p class="text-sm text-base-content/65"><strong>Best for:</strong> facts hidden behind varied wording. Chunk or beam-search when more than 255 candidates exist.</p></div></article>
+      <article class="option-card card card-border bg-base-100 shadow-sm"><div class="card-body"><h3 class="card-title">4 · Semantic state delta</h3><p>After the first decision, send a self-contained delta: current action context, relevant additions, changes, and removals. Fall back to the full projection whenever the delta is ambiguous or larger.</p><p class="text-sm text-base-content/65"><strong>Limit:</strong> it reduces repeated input; it does not solve first-observation compaction.</p></div></article>
+      <article class="option-card card card-border bg-base-100 shadow-sm"><div class="card-body"><h3 class="card-title">5 · Typed AX intermediate representation</h3><p>Compile lines into records such as <span class="mono">{id, role, name, evidence, safeAction}</span>. This creates a stable seam between CUA quirks and Jev questions, and makes tests express domain behavior rather than string parsing.</p><p class="text-sm text-base-content/65"><strong>Trade-off:</strong> more initial parser work, but the highest long-term locality.</p></div></article>
+      <article class="option-card card card-border bg-base-100 shadow-sm"><div class="card-body"><h3 class="card-title">6 · Viewport / region pagination</h3><p>Ask the browser runtime for a focused region or scroll window, then process one bounded region at a time.</p><p class="text-sm text-base-content/65"><strong>Trade-off:</strong> elegant when the CUA API exposes reliable region semantics; fragile if the runtime only gives whole-page AX.</p></div></article>
+      <article class="option-card card card-border bg-base-100 shadow-sm"><div class="card-body"><h3 class="card-title">7 · Structural profile cache</h3><p>Persist only allowlisted, page-family structure such as “rooms,” “policies,” and “children.” Use it to choose evidence lanes without storing URLs, snapshots, prices, or private text.</p><p class="text-sm text-base-content/65"><strong>Trade-off:</strong> useful optimization, but a cache must never be required for correctness.</p></div></article>
+      <article class="option-card card card-border bg-base-100 shadow-sm"><div class="card-body"><h3 class="card-title">8 · Confidence-gated action router</h3><p>Make Jev choose among <span class="mono">ACT</span>, <span class="mono">WAIT</span>, <span class="mono">VERIFY</span>, and <span class="mono">BLOCKED</span>. Code applies action-specific confidence thresholds and never treats confidence as proof.</p><p class="text-sm text-base-content/65"><strong>Role:</strong> this is a guard around every other design, not a replacement for compaction.</p></div></article>
+      <article class="option-card card card-border bg-base-100 shadow-sm"><div class="card-body"><h3 class="card-title">9 · Speculative fan-out</h3><p>Ask several independent questions over the same bounded state: next action, page phase, target presence, and whether the goal evidence is sufficient. Code ignores irrelevant branches.</p><p class="text-sm text-base-content/65"><strong>Benefit:</strong> avoids serial Jev calls when the questions share one observation.</p></div></article>
+      <article class="option-card card card-border bg-base-100 shadow-sm"><div class="card-body"><h3 class="card-title">10 · Reasoning-model fallback</h3><p>When deterministic extraction cannot produce a bounded state, route to a slower reasoning model or Codex with an explicit handoff rather than repeatedly retrying Jev.</p><p class="text-sm text-base-content/65"><strong>Trade-off:</strong> robust escape hatch, but it treats the root cause with a more expensive path.</p></div></article>
+    </section>
+
+    <section class="mb-10 grid gap-5 lg:grid-cols-[1.05fr_.95fr]" aria-labelledby="best-title">
+      <div class="card card-border bg-base-100 shadow-lg"><div class="card-body p-6 sm:p-8"><p class="eyebrow text-primary">Best design</p><h2 id="best-title" class="mt-1 text-3xl font-bold">A small interface, a deep implementation</h2><p class="mt-3 leading-7 text-base-content/75">Expose one module seam: <span class="mono">prepareDecision(rawAX, goal, allowedControls)</span>. Internally it parses, filters, ranks, labels, and bounds evidence. The caller receives a model-safe state plus an opaque action map. Jev never needs to know accessibility indices.</p><div class="mt-5 grid gap-3 sm:grid-cols-3"><div class="rounded-box bg-base-200 p-4"><p class="font-semibold">Leverage</p><p class="mt-1 text-sm text-base-content/65">One fix serves Agoda and future dense sites.</p></div><div class="rounded-box bg-base-200 p-4"><p class="font-semibold">Locality</p><p class="mt-1 text-sm text-base-content/65">Compaction and safety live behind one seam.</p></div><div class="rounded-box bg-base-200 p-4"><p class="font-semibold">Testability</p><p class="mt-1 text-sm text-base-content/65">Pure projection tests plus raw-action integration tests.</p></div></div><div class="mt-6"><p class="mb-2 font-semibold">Recommended state sent to Jev</p><pre class="mockup-code overflow-x-auto text-xs"><code>{
+  "task": {"goal": "find room availability", "phase": "property_detail"},
+  "page": {"origin": "https://www.agoda.com", "ready": true},
+  "actions": [
+    {"id": "a0", "kind": "click", "label": "Rooms"},
+    {"id": "a1", "kind": "scroll", "label": "Scroll down"}
+  ],
+  "evidence": [
+    {"id": "e0", "kind": "room_offer", "text": "..."},
+    {"id": "e1", "kind": "availability", "text": "..."}
+  ]
+}</code></pre></div></div></div>
+      <div class="card card-border bg-base-100 shadow-lg"><div class="card-body p-6 sm:p-8"><p class="eyebrow text-secondary">Typed judgments</p><h2 class="mt-1 text-3xl font-bold">Ask Jev only what code cannot decide</h2><div class="mt-5 space-y-4"><div class="rounded-box border border-primary/25 bg-primary/5 p-4"><div class="flex items-center justify-between gap-3"><h3 class="font-semibold">Choice · next</h3><span class="badge badge-primary badge-sm">execute candidate</span></div><p class="mt-2 text-sm text-base-content/70">“Which allowed action is the best next mechanical step, or should we wait, finish, or hand off?”</p></div><div class="rounded-box border border-secondary/25 bg-secondary/5 p-4"><div class="flex items-center justify-between gap-3"><h3 class="font-semibold">Noul · ready</h3><span class="badge badge-secondary badge-sm">presence check</span></div><p class="mt-2 text-sm text-base-content/70">“Does the bounded evidence contain a visible room availability or price result?”</p></div><div class="rounded-box border border-warning/30 bg-warning/5 p-4"><div class="flex items-center justify-between gap-3"><h3 class="font-semibold">Code · policy</h3><span class="badge badge-warning badge-sm">never model-decided</span></div><p class="mt-2 text-sm text-base-content/70">Origin allowlists, sensitive controls, fresh-state checks, index mapping, and final verification stay deterministic.</p></div></div><div class="mt-6 alert alert-info"><span>Confidence routes behavior; it does not certify that the page fact is true.</span></div></div></div>
+    </section>
+
+    <section class="card card-border bg-base-100 shadow-sm" aria-labelledby="why-title"><div class="card-body p-6 sm:p-8"><p class="eyebrow text-primary">Why this wins</p><h2 id="why-title" class="mt-1 text-3xl font-bold">It solves the actual failure without making Jev the browser driver</h2><div class="mt-5 grid gap-4 md:grid-cols-2"><div><h3 class="font-semibold">1. It makes the first observation fit</h3><p class="mt-1 text-sm leading-6 text-base-content/70">The original failure happened before the first model call. Deterministic bounding removes the hard failure at the source.</p></div><div><h3 class="font-semibold">2. It preserves a clean safety story</h3><p class="mt-1 text-sm leading-6 text-base-content/70">The model chooses an opaque action ID; code re-resolves it against fresh raw AX before execution.</p></div><div><h3 class="font-semibold">3. It uses TypeSafe for semantics</h3><p class="mt-1 text-sm leading-6 text-base-content/70">Jev handles “which candidate fits?” and “is the target present?”—judgments that keyword rules cannot reliably own.</p></div><div><h3 class="font-semibold">4. It degrades honestly</h3><p class="mt-1 text-sm leading-6 text-base-content/70">Projection failure, low confidence, stale state, or missing evidence produces a handoff or fallback, never a guessed click.</p></div></div><div class="mt-6 flex flex-wrap gap-2"><span class="badge badge-outline">Do first: typed compiler seam</span><span class="badge badge-outline">Add next: reranked evidence</span><span class="badge badge-outline">Keep: semantic delta + profile cache</span><span class="badge badge-outline">Reserve: reasoning fallback</span></div></div></section>
+
+    <footer class="mt-8 flex flex-col gap-2 border-t border-base-content/10 pt-5 text-xs text-base-content/55 sm:flex-row sm:items-center sm:justify-between"><span>Source basis: baseline commit <span class="mono">f14b60e</span>, current bridge/profile code, initial session log, and <span class="mono">work/agoda-ab-report.md</span>.</span><span><a class="link link-hover" href="https://docs.typesafe.ai/concepts/how-to-build-with-system-one">TypeSafe building guide</a> · <a class="link link-hover" href="https://docs.typesafe.ai/primitives/choice">Choice</a> · <a class="link link-hover" href="https://docs.typesafe.ai/confidence">Confidence</a></span></footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Generic Jev Browser Use — Implementation Plan</title>
+  <style>
+    :root { color-scheme: dark; --bg:#07131f; --panel:#0d1d2b; --panel2:#122636; --line:#294052; --text:#eef7fa; --muted:#9fb2c2; --accent:#56edc4; --blue:#6bb8ff; --warn:#ffcb6b; --danger:#ff7b8c; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:radial-gradient(circle at 75% 0,#123148 0,transparent 34%),var(--bg); color:var(--text); font:15px/1.55 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { width:min(1180px,calc(100% - 32px)); margin:auto; padding:40px 0 72px; }
+    h1,h2,h3,p { margin-top:0; } h1 { font-size:clamp(2.2rem,5vw,4.8rem); line-height:.98; letter-spacing:-.055em; max-width:850px; } h2 { font-size:1.55rem; letter-spacing:-.02em; } h3 { font-size:1rem; }
+    .eyebrow,.tag { color:var(--accent); font-weight:750; letter-spacing:.11em; text-transform:uppercase; font-size:.72rem; }
+    .lead { max-width:780px; color:#c5d4df; font-size:1.12rem; }
+    .hero { padding:48px; border:1px solid var(--line); border-radius:28px; background:linear-gradient(145deg,rgba(18,38,54,.96),rgba(8,23,35,.9)); box-shadow:0 24px 70px rgba(0,0,0,.28); }
+    .stats,.grid,.phases { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+    .stats { margin-top:30px; } .stat,.card,.phase { min-width:0; border:1px solid var(--line); background:rgba(13,29,43,.84); border-radius:18px; padding:20px; }
+    .stat strong { display:block; color:var(--accent); font-size:1.7rem; } .stat span,.muted { color:var(--muted); }
+    section { margin-top:38px; } .section-head { display:flex; gap:18px; align-items:end; justify-content:space-between; margin-bottom:16px; } .section-head p { max-width:650px; margin:0; color:var(--muted); }
+    .diagram { padding:16px; border:1px solid var(--line); background:#091725; border-radius:22px; overflow:hidden; }
+    svg { width:100%; height:auto; display:block; }
+    .grid.two { grid-template-columns:repeat(2,minmax(0,1fr)); } ul { padding-left:19px; margin-bottom:0; } li+li { margin-top:7px; }
+    code { color:#b8f6e5; background:#07131f; padding:.12rem .35rem; border-radius:5px; overflow-wrap:anywhere; }
+    .decision { border-left:4px solid var(--accent); } .rejected { opacity:.88; border-left:4px solid var(--warn); }
+    .phases { grid-template-columns:repeat(2,minmax(0,1fr)); counter-reset:phase; }
+    .phase { position:relative; padding-left:68px; } .phase::before { counter-increment:phase; content:counter(phase); position:absolute; left:20px; top:20px; width:32px; height:32px; display:grid; place-items:center; border-radius:50%; background:var(--accent); color:#052017; font-weight:850; }
+    .phase p { color:var(--muted); margin-bottom:0; } .phase small { color:var(--blue); }
+    table { width:100%; border-collapse:collapse; background:rgba(13,29,43,.84); border:1px solid var(--line); } th,td { text-align:left; padding:13px 15px; border-bottom:1px solid var(--line); vertical-align:top; } th { color:var(--accent); font-size:.76rem; text-transform:uppercase; letter-spacing:.08em; } td { overflow-wrap:anywhere; }
+    .gate { color:var(--accent); font-weight:800; } .risk { color:var(--warn); }
+    .footer { margin-top:38px; padding:22px; border:1px dashed var(--line); border-radius:18px; color:var(--muted); }
+    @media (max-width:760px) { main { width:min(100% - 20px,1180px); padding-top:16px; } .hero { padding:28px 22px; } .stats,.grid,.grid.two,.phases { grid-template-columns:1fr; } .phase { padding-left:62px; } .section-head { display:block; } }
+  </style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <div class="eyebrow">Jev Browser Use · v0.2 direction</div>
+    <h1>Generic by default.<br>Bounded by design.</h1>
+    <p class="lead">Turn Jev into a fast next-action selector for arbitrary accessible websites, while Codex keeps intent, authorization, unsupported interactions, and final truth.</p>
+    <div class="stats">
+      <div class="stat"><strong>0</strong><span>site profiles required</span></div>
+      <div class="stat"><strong>20k</strong><span>maximum projected AX characters</span></div>
+      <div class="stat"><strong>40</strong><span>default permitted-action ceiling</span></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head"><div><div class="tag">Architecture</div><h2>One narrow judgment inside a code-owned loop</h2></div><p>The raw snapshot remains the safety authority. The compact projection is only Jev input.</p></div>
+    <div class="diagram">
+      <svg viewBox="0 0 1080 350" role="img" aria-labelledby="flow-title flow-desc">
+        <title id="flow-title">Generic Jev browser decision flow</title><desc id="flow-desc">Codex defines the goal and allowed actions. Generic parsing and projection prepare state for Jev. Jev selects one choice. The bridge rechecks fresh raw state before execution, then Codex verifies.</desc>
+        <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0L9 3L0 6Z" fill="#56edc4"/></marker></defs>
+        <g font-family="system-ui,sans-serif">
+          <g id="codex"><title>Codex owns intent and authorization</title><rect x="25" y="55" width="190" height="105" rx="18" fill="#122636" stroke="#56edc4"/><text x="50" y="91" fill="#56edc4" font-size="16" font-weight="750">CODEX</text><text x="50" y="120" fill="#eef7fa" font-size="15">Goal + permitted actions</text><text x="50" y="144" fill="#9fb2c2" font-size="13">Sensitive work stays here</text></g>
+          <g id="generic-core"><title>Generic parsing and projection</title><rect x="285" y="35" width="235" height="145" rx="18" fill="#122636" stroke="#6bb8ff"/><text x="310" y="72" fill="#6bb8ff" font-size="16" font-weight="750">GENERIC CORE</text><text x="310" y="103" fill="#eef7fa" font-size="15">Lossless AX parser</text><text x="310" y="128" fill="#eef7fa" font-size="15">Goal/action projection</text><text x="310" y="153" fill="#9fb2c2" font-size="13">No cache or site matcher</text></g>
+          <g id="jev"><title>Jev selects one bounded choice</title><rect x="590" y="55" width="190" height="105" rx="18" fill="#122636" stroke="#56edc4"/><text x="615" y="91" fill="#56edc4" font-size="16" font-weight="750">JEV CHOICE</text><text x="615" y="120" fill="#eef7fa" font-size="15">a0…aN / WAIT</text><text x="615" y="144" fill="#9fb2c2" font-size="13">DONE / BLOCKED</text></g>
+          <g id="safety"><title>Fresh-state safety gate</title><rect x="850" y="35" width="205" height="145" rx="18" fill="#122636" stroke="#ffcb6b"/><text x="875" y="72" fill="#ffcb6b" font-size="16" font-weight="750">SAFETY GATE</text><text x="875" y="103" fill="#eef7fa" font-size="15">Confidence threshold</text><text x="875" y="128" fill="#eef7fa" font-size="15">Raw byte equality</text><text x="875" y="153" fill="#9fb2c2" font-size="13">Execute or hand off</text></g>
+          <path d="M215 107H280" stroke="#56edc4" stroke-width="3" marker-end="url(#arrow)"/><path d="M520 107H585" stroke="#56edc4" stroke-width="3" marker-end="url(#arrow)"/><path d="M780 107H845" stroke="#56edc4" stroke-width="3" marker-end="url(#arrow)"/>
+          <path d="M952 180V250H130V165" fill="none" stroke="#56edc4" stroke-width="3" marker-end="url(#arrow)"/><text x="425" y="282" fill="#eef7fa" font-size="15" font-weight="650">Fresh browser state → next bounded decision</text><text x="433" y="307" fill="#9fb2c2" font-size="13">DONE always returns to Codex for independent verification</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="tag">Design decision</div><h2>Remove persistent profiles from the default path</h2></div><p>Persistence is extra risk without proven generic value.</p></div>
+    <div class="grid two">
+      <article class="card decision"><h3>Chosen · deterministic generic state</h3><ul><li>Current AX snapshot + permitted actions</li><li>Goal-aware structural projection</li><li>In-memory delta within one run</li><li>Works on the first visit to a site</li></ul></article>
+      <article class="card rejected"><h3>Rejected · origin or URL-family cache</h3><ul><li>Can mix unrelated pages</li><li>Adds privacy and invalidation concerns</li><li>Needs unreliable family inference</li><li>Makes new sites second-class</li></ul></article>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="tag">Execution</div><h2>Ten independently testable phases</h2></div><p>Each phase has a red test, minimal implementation, verification, and a conventional commit.</p></div>
+    <div class="phases">
+      <article class="phase"><h3>Generic contract</h3><p>Five unrelated fixtures and a runtime test that forbids Agoda-specific branches.</p></article>
+      <article class="phase"><h3>AX parser</h3><p>Lossless source lines, indices, roles, names, ancestry, and origin validation.</p></article>
+      <article class="phase"><h3>Projection</h3><p>Protected actions, relevant structure, bounded text, and generic deltas.</p></article>
+      <article class="phase"><h3>Readiness</h3><p>Actionable-state polling, no-action detection, and candidate ceilings.</p></article>
+      <article class="phase"><h3>Orchestration tests</h3><p>Staleness, confidence, injection, retries, handoffs, and verification.</p></article>
+      <article class="phase"><h3>Packaging</h3><p>Install the new modules, remove the old dependency, and bump to 0.2.0.</p></article>
+      <article class="phase"><h3>Documentation</h3><p>Make the general product contract—not Agoda—the primary story.</p></article>
+      <article class="phase"><h3>Acceptance report</h3><p>Sanitized, deterministic metrics with no URLs, page text, or snapshots.</p></article>
+      <article class="phase"><h3>Live validation</h3><p>Two trials each on TypeSafe docs, GitHub, and Wikipedia.</p></article>
+      <article class="phase"><h3>Release gate</h3><p>Ship only after unit checks, installed-file checks, and live success.</p></article>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="tag">Release gate</div><h2>Evidence required before v0.2.0</h2></div><p>Speed is useful only after safety and generality hold.</p></div>
+    <div style="overflow-x:auto;border-radius:18px">
+      <table>
+        <thead><tr><th>Dimension</th><th>Gate</th><th>Failure response</th></tr></thead>
+        <tbody>
+          <tr><td>Action integrity</td><td class="gate">100% permitted lines and indices preserved</td><td>Fix projection; do not relax the invariant</td></tr>
+          <tr><td>Freshness</td><td class="gate">0 executions after raw-state change</td><td>Block release</td></tr>
+          <tr><td>Generality</td><td class="gate">No Agoda/site-name branch in runtime</td><td>Fix the generic seam</td></tr>
+          <tr><td>Live workflows</td><td class="gate">At least 5 of 6 independently verified</td><td>Classify parser, projection, or policy failure</td></tr>
+          <tr><td>Safety</td><td class="gate">0 unintended state-changing actions</td><td>Block release</td></tr>
+          <tr><td>Input size</td><td class="gate">Every projection ≤ 20,000 characters</td><td>Hand off; never send oversized raw state</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="grid two">
+    <article class="card"><div class="tag">Compatibility</div><h2>One-release migration</h2><p class="muted"><code>profileCacheDir</code> and <code>profileCacheEnabled</code> remain accepted but become ignored and documented as deprecated. Existing callers keep working while the runtime stops reading or writing profiles.</p></article>
+    <article class="card"><div class="tag">Rollback</div><h2>Commit-sized reversibility</h2><p class="muted">Record the starting commit, preserve the dirty worktree, and revert only a failed phase. Never reset or clean unrelated work. Restore the installed skill from a clean checkout of the last release.</p></article>
+  </section>
+
+  <div class="footer"><strong>Source plan:</strong> <code>docs/superpowers/plans/2026-09-20-generic-jev-browser-use.md</code><br><span>The Markdown plan contains exact files, test cases, commands, expected outcomes, commits, live validation, and rollback instructions.</span></div>
+</main>
+</body>
+</html>
