@@ -4,7 +4,8 @@ import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { access } from 'node:fs/promises';
 import { CHROME_DEVTOOLS_MCP_PIN } from '../src/contract.mjs';
-import { ChromeDevtoolsSession, testPeerTransport } from '../src/chrome/session.mjs';
+import { ChromeDevtoolsSession } from '../src/chrome/session.mjs';
+import { testPeerTransport } from './helpers/chrome-test-transport.mjs';
 import {
   ChromeActionPolicyError,
   assertToolAllowlisted,

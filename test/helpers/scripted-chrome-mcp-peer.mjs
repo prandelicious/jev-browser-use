@@ -25,6 +25,8 @@ let selectedPageId = null;
 let initialized = false;
 let pageClosureTriggered = false;
 let delayMs = scenario === 'timeout' ? 30_000 : 0;
+let snapshotCallCount = 0;
+let clickDelayMs = scenario === 'task-slow-click' ? 2_000 : 0;
 
 function writeMessage(message) {
   process.stdout.write(serializeMessage(message));
@@ -114,25 +116,46 @@ async function handleToolsCall(id, params) {
   }
 
   if (name === 'take_snapshot') {
+    snapshotCallCount += 1;
+    const page = pages.find((p) => p.pageId === args.pageId);
+    const url = page?.url ?? 'about:blank';
+    let body = `Browser tab: Example (pageId=${args.pageId}) URL: "${url}".\n2 button Continue`;
+    if (scenario === 'task-changed-snapshot' && snapshotCallCount > 1) {
+      body += '\n99 text unrelated accessibility churn';
+    }
     writeMessage({
       jsonrpc: '2.0',
       id,
-      result: toolResult({
-        snapshot: `Browser tab: Example (pageId=${args.pageId}) URL: "${pages.find((p) => p.pageId === args.pageId)?.url ?? 'about:blank'}".`,
-      }),
+      result: toolResult({ snapshot: body }),
     });
     return;
   }
 
   if (name === 'click') {
+    if (clickDelayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, clickDelayMs));
+    }
+    if (scenario === 'task-secret-error') {
+      writeMessage({
+        jsonrpc: '2.0',
+        id,
+        result: {
+          content: [{ type: 'text', text: 'Element missing sk-abcdefghijklmnopqrstuvwxyz' }],
+          isError: true,
+        },
+      });
+      return;
+    }
     writeMessage({ jsonrpc: '2.0', id, result: toolResult({ clicked: args.uid }) });
     return;
   }
 
   if (name === 'navigate_page') {
     const page = pages.find((entry) => entry.pageId === args.pageId);
-    if (page) page.url = args.url;
-    writeMessage({ jsonrpc: '2.0', id, result: toolResult({ url: args.url }) });
+    if (page) {
+      page.url = scenario === 'task-off-origin' ? `${blockedOrigin}/left` : args.url;
+    }
+    writeMessage({ jsonrpc: '2.0', id, result: toolResult({ url: page?.url ?? args.url }) });
     return;
   }
 

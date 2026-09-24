@@ -1,15 +1,12 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { CHROME_DEVTOOLS_MCP_PIN, assertPinIsExact } from '../contract.mjs';
 
 const require = createRequire(import.meta.url);
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const PEER_SCRIPT = join(__dirname, '../../test/helpers/scripted-chrome-mcp-peer.mjs');
 
 export class ChromeSessionError extends Error {
   constructor(message, { code = 'error', cause } = {}) {
@@ -267,15 +264,4 @@ export function originFromUrl(urlString) {
   } catch {
     return null;
   }
-}
-
-export function testPeerTransport(scenario, extraEnv = {}) {
-  return {
-    command: process.execPath,
-    args: [PEER_SCRIPT, scenario],
-    env: {
-      ...process.env,
-      ...extraEnv,
-    },
-  };
 }
