@@ -1,5 +1,5 @@
 import { projectEvidenceLanes } from '../../skills/jev-browser-use/projection-core.mjs';
-import { SERVER_CAPS } from '../../test/contract.test.mjs';
+import { SERVER_CAPS } from '../contract.mjs';
 
 /** Matches existing Codex bridge decision-state guard (not part of host task caps). */
 export const MAX_PROJECTED_STATE_CHARS = 24_000;
