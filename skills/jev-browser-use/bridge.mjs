@@ -211,6 +211,43 @@ export function discoverActions(state, policy={}) {
   return actions;
 }
 
+const attachedTabs = new WeakSet();
+const sneakInConstructor = /^(?:Page|Frame|BrowserContext|Browser|BrowserType|CDPSession|Connection|WebView|Target|Runtime|ElementHandle|JSHandle)$/;
+
+function constructorNames(tab) {
+  const names = [];
+  for (let current = tab; current && typeof current === 'object'; current = Object.getPrototypeOf(current)) {
+    const name = current.constructor?.name;
+    if (name && name !== 'Object') names.push(name);
+  }
+  return names;
+}
+
+function refusesTab(tab) {
+  if (tab == null || typeof tab !== 'object') throw new Error('Unsupported host tab');
+  if (typeof globalThis.Bun !== 'undefined' && globalThis.Bun.WebView && tab instanceof globalThis.Bun.WebView) throw new Error('Unsupported host tab');
+  const names = constructorNames(tab);
+  if (names.some(name => sneakInConstructor.test(name))) throw new Error('Unsupported host tab');
+  if (typeof tab.connectOverCDP === 'function' || tab.connectOverCDP != null) throw new Error('Unsupported host tab');
+  if (tab.Runtime != null || tab.Target != null) throw new Error('Unsupported host tab');
+  if (typeof tab.goto === 'function' && (typeof tab.locator === 'function' || typeof tab.$ === 'function')) throw new Error('Unsupported host tab');
+  if (tab.context != null && typeof tab.context?.newPage === 'function') throw new Error('Unsupported host tab');
+  if (typeof tab.getAXState !== 'function') throw new Error('Unsupported host tab');
+  const mechanical = ['click','scroll','pressKey','reload'].some(method => typeof tab[method] === 'function');
+  if (!mechanical) throw new Error('Unsupported host tab');
+}
+
+function requireAttachedTab(tab) {
+  refusesTab(tab);
+  if (!attachedTabs.has(tab)) throw new Error('Unsupported host tab');
+}
+
+export function attachTab(tab) {
+  refusesTab(tab);
+  attachedTabs.add(tab);
+  return tab;
+}
+
 async function execute(tab, action) {
   if (action.op === 'click') await tab.click(action.index);
   else if (action.op === 'scroll' && action.target !== undefined) await tab.scroll(action.target,action.direction,action.amount ?? 1);
@@ -227,8 +264,8 @@ function result(status,history,state,startedAt,details={}) {
   return {status,handoff:handoff(status),history,state,elapsedMs:Math.round(performance.now()-startedAt),...details};
 }
 
-// This accepts only an already-authorized cua_repl tab, never opens a browser.
 export async function run(tab,{goal,controls=[],policy,envFile,provider,model,allowedOrigins,maxSteps=10,minConfidence=0.55,maxMs=45000,decisionTimeoutMs=20000,maxDecisionRetries=1,waitPollMs=750,profileCacheDir,profileCacheEnabled=true,incrementalStateEnabled=true,incrementalStateMaxRatio=0.65},prior=[]) {
+  requireAttachedTab(tab);
   if (typeof goal !== 'string' || !goal || !Array.isArray(controls) || (!controls.length && !policy) || controls.some(control => !validateControl(control)) || !Number.isInteger(maxSteps) || maxSteps < 1 || maxSteps > 30 || !Number.isFinite(maxMs) || maxMs < 1 || maxMs > 45000 || !Number.isFinite(decisionTimeoutMs) || decisionTimeoutMs < 1000 || decisionTimeoutMs > 30000 || !Number.isInteger(maxDecisionRetries) || maxDecisionRetries < 0 || maxDecisionRetries > 2 || !Number.isFinite(minConfidence) || minConfidence < 0.55 || minConfidence > 1 || !Number.isFinite(waitPollMs) || waitPollMs < 100 || waitPollMs > 5000 || typeof incrementalStateEnabled !== 'boolean' || !Number.isFinite(incrementalStateMaxRatio) || incrementalStateMaxRatio < 0.1 || incrementalStateMaxRatio > 1 || !Array.isArray(allowedOrigins) || !allowedOrigins.length) throw new Error('Invalid task contract');
   const history = [...prior];
   const startedAt = performance.now();
@@ -311,6 +348,7 @@ export async function run(tab,{goal,controls=[],policy,envFile,provider,model,al
 }
 
 export function createSession(tab,defaults={}) {
+  requireAttachedTab(tab);
   let history = [];
   let elapsedMs = 0;
   let runs = 0;

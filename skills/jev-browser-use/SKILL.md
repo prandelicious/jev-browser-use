@@ -11,12 +11,12 @@ required Computer Use runtime. Claude Code browser integration is coming soon;
 installation alone does not provide it. If the runtime is absent, report that
 requirement instead of substituting unrelated browser tools.
 
-Use this as the default first route for browser verification. Run the decision/action loop inside `cua_repl` so the host model does not spend a turn on each click. This is a browser-plugin bridge, not a standalone browser driver or a replacement for Codex's judgment.
+Use this as the default first route for browser verification when the catalog gate below passes. Run the decision/action loop inside `cua_repl` so the host model does not spend a turn on each click. This is a Codex Computer Use MCP bridge, not a standalone browser driver and not a replacement for Codex's judgment. Importing `bridge.mjs` without the Skill catalog gate is **unsupported host** — the same failure as missing `mcp__cua_repl.js`, regardless of IDE or agent shell.
 
 ## Responsibilities and limits
 
 - Codex owns the task, authorization, all text entry, graphical recognition, visual interpretation, sensitive actions, and final verification. Jev is a fast mechanical browser operator: it chooses among currently observed permitted navigation, click, toggle, scroll, reload, and bounded key actions. It never chats, types or writes content, recognizes screenshots, generates selectors, code, coordinates, URLs, or arbitrary text.
-- Use only the in-app browser or Google Chrome; never Edge. Follow the current browser tool's first-call rules and documentation. Use `cua_repl` for every UI action. Do not launch a separate Playwright/CDP driver.
+- Use only the in-app browser or Google Chrome; never Edge. When `mcp__cua_repl.js` is declared this turn, follow that runtime's documented entry point for mechanical UI actions. Do not launch or wrap Playwright, CDP, Bun.WebView, or any separate browser driver.
 - The helper supports named clicks, bounded scrolling, safe navigation keys, reloads, persistent multi-chunk sessions, and deterministic state waits. Scrolling can target the page, a freshly resolved named AX container, or a coordinate supplied once by Codex after visual recognition; Jev never invents coordinates. The helper deliberately exposes no text-entry action. Codex enters text and then resumes the same Jev session. Native select APIs, frames, canvas, drag-and-drop, uploads, screenshots as model input, and native desktop apps are not implemented in the helper. Use Codex's CUA tools for those gaps and resume Jev rather than abandoning delegation.
 - Jev returns `needs_verification`, never a verified pass. Codex must independently check the requested result using fresh browser state and screenshots when appropriate. A successful scroll may leave AX text unchanged; the helper records `effectNeedsVisualVerification` and continues instead of falsely declaring no progress.
 
@@ -69,47 +69,20 @@ The user configuration works across project directories. The helper reads the cr
 
 Only for installation, provider changes, or API troubleshooting, read [API integration maintenance](references/provider-configuration.md). It documents all currently supported adapters. It is not required reading for browser verification.
 
-## Discover the browser tool correctly — required before declaring it unavailable
+## Catalog gate — required before browser work or importing the bridge
 
-`cua_repl` is normally a **direct tool namespace**, exposed as `mcp__cua_repl.js`
-and `mcp__cua_repl.js_reset`. It is not a nested `tools.*` method inside
-`functions.exec`. The app-managed plugin intentionally omits these tools from
-code-mode and deferred tool lists. Therefore an empty
-`ALL_TOOLS.filter(... /cua|browser/ ...)` result does **not** show that the browser
-plugin is missing. Do not repeatedly search that list or stop on that basis.
+This Skill is the **only** catalog gate. `bridge.mjs` does not read tool declarations; never pass a `declaredTools` array or similar catalog into the bridge.
 
-1. Inspect the direct tool declarations available in this turn before searching
-   generic tool catalogs. Prefer `mcp__cua_repl.js` when present. Use its documented
-   first-call entry point and read the returned runtime documentation before
-   continuing. Never invent a tool name or route a direct tool through shell,
-   HTTP, or a guessed `tools.*` method.
-2. If that exact namespace is absent, inspect other declared browser/computer-use
-   tools and any available discovery mechanism once. Follow their own documented
-   entry points. A different tool name is not proof of incompatibility, but this
-   bridge still requires a compatible tab API and module-import runtime. Verify
-   those capabilities before importing it. If only host browser controls are
-   available, use them within the user's scope and report that Jev delegation
-   was unavailable; do not claim the bridge worked or improvise an untested adapter.
-3. Keep three states separate: plugin enabled globally, tool exposed to this
-   turn, and requested browser/profile/tab reachable. Configuration proves only
-   enablement. A plugin mention proves only selection. A successful documented
-   read of the requested tab proves reachability. A blank in-app tab does not
-   establish access to the user's Chrome session.
-4. If the user named Chrome or an existing tab, use the runtime's documented
-   discovery/attachment API for that target. Do not open a replacement browser
-   session or claim to have inspected the existing tab based on an unrelated
-   probe. If no browser was specified, the blank-tab probe below is suitable.
-5. When blocked, report the exact failing state and the checks actually made.
-   Do not tell the user to enable a nonexistent per-task switch or repeat global
-   setup they already completed. If current app documentation supports browser
-   selection via `@Chrome`, suggest selecting it from the mention menu once.
-   Re-check on the next turn; if tools are still absent, say so without claiming
-   the plugin is uninstalled. A new task or app restart is a recovery option,
-   not a guaranteed fix. Create a new task only when the user explicitly requests
-   one, and use the handoff checklist below.
-6. Do not repeatedly run the same empty discovery query, write diagnostic files
-   by default, rewrite bundled launchers, copy private plugin environments, disable
-   safeguards, or install another browser driver to bypass missing capabilities.
+**Computer Use MCP** (`mcp__cua_repl.js`, Codex's in-app browser or connected Chrome) is **not** Cursor's GUI computer-use / CUA tools. They are different hosts; do not treat one as the other.
+
+`cua_repl` is normally a **direct tool namespace**: `mcp__cua_repl.js` and `mcp__cua_repl.js_reset`. It is not a nested `tools.*` method inside `functions.exec`. Codex often omits these from deferred lists such as `ALL_TOOLS`.
+
+1. Inspect **this turn's declared tools** (direct declarations), not `ALL_TOOLS` alone. An empty `ALL_TOOLS` list is **inconclusive** — do **not** stop or declare the browser plugin missing on that basis alone. Look for the direct declaration `mcp__cua_repl.js`.
+2. If `mcp__cua_repl.js` is **not** declared this turn, stop with **unsupported host**. Report the declaration evidence you checked. The same failure applies on Cursor, Claude Code, CI, and other hosts without that declaration. Do not detect or substitute GUI computer-use tools, host browser controls, Playwright, CDP, or Bun.WebView. Do not claim Jev ran or improvise an untested adapter.
+3. Keep three states separate: plugin enabled globally, tool exposed to this turn, and requested browser/profile/tab reachable. Configuration proves only enablement. A plugin mention proves only selection. A successful documented read of the requested tab proves reachability.
+4. If the user named Chrome or an existing tab, use the runtime's documented discovery/attachment API for that target after the catalog gate passes. Do not open a replacement session or claim to have inspected an existing tab without that runtime.
+5. When blocked, report the exact failing state and checks actually made. Do not tell the user to enable a nonexistent per-task switch or repeat global setup they already completed. If Codex documentation supports browser selection via `@Chrome`, suggest selecting it from the mention menu once. Re-check on the next turn; if `mcp__cua_repl.js` is still undeclared, say so without claiming the plugin is uninstalled. A new task or app restart is a recovery option, not a guaranteed fix. Create a new task only when the user explicitly requests one, and use the handoff checklist below.
+6. Do not repeatedly run the same empty catalog query, write diagnostic files by default, rewrite bundled launchers, copy private plugin environments, disable safeguards, or install another browser driver to bypass missing capabilities.
 
 The Skill is independent of the current project directory. Import the absolute
 Skill path and call `loadConfig()`; it reads `~/.config/jev-browser-use/config.json`
@@ -117,32 +90,6 @@ from the user home directory, independent of the install path or working directo
 returns `envFile`, `provider`, and `model`, **not an API key**. The absence of `config.apiKey`
 is expected and must not be reported as missing credentials. Only `decide()`
 reads the referenced dotenv credential when making the authorized API request.
-
-### Copyable first probe
-
-Tool recipient: **`mcp__cua_repl.js`** (a direct tool call, outside `functions.exec`).
-Arguments:
-
-```json
-{
-  "code": "var taskTab = await cua.createBrowserTab('iab', 'about:blank', {visible:false});",
-  "title": "检查浏览器操作接口"
-}
-```
-
-Use this only if that tool is declared in the current turn. The first invocation
-must contain just this one API call. Read the returned documentation before the
-next invocation. Keep `taskTab` for subsequent navigation and the Jev loop.
-
-| Observation | Correct conclusion / next step |
-| --- | --- |
-| No `cua` result in `ALL_TOOLS` | Inconclusive; inspect direct tool declarations. |
-| Browser panel opens | Display works; control has not been tested. |
-| Direct CUA call returns AX state | Browser runtime works; continue with Jev. |
-| `config.apiKey` is absent | Expected; use `envFile` through the helper. |
-| API reports HTTP 401/403 | Credential/access problem, not browser discovery. |
-| Jev returns `needs_verification` | Independently check the page; do not claim pass yet. |
-| Direct tool genuinely absent | Report tool-declaration evidence and perform the recovery above. |
 
 ## Hand off without losing the task
 
@@ -174,16 +121,19 @@ from publication; a prepared draft is not a sent post.
 
 ## Execute in cua_repl
 
-On the first call initialize a tab with the documented `cua` entry point. For example, if no browser was specified:
+Only after `mcp__cua_repl.js` is declared this turn (catalog gate above). Obtain a tab through the **Skill allow path**: open one cua tab via the documented factory for this workflow, **or** reuse an existing `cua_repl` tab from this session. Read the runtime documentation returned on first use. Do not use blank-tab or `about:blank` capability checks.
+
+Example when no browser was specified (single allowed tab-open site in this Skill):
 
 ```js
-var taskTab = await cua.createBrowserTab('iab', 'http://127.0.0.1:8769', {visible:false});
+var taskTab = await cua.createBrowserTab('iab', 'https://example.com', {visible:false});
 ```
 
-Read the returned documentation. Then import this skill's helper and run a short chunk. Resolve the absolute skill directory from the loaded SKILL.md; replace `<skill-dir>` below, never execute it literally.
+Then import this skill's helper, attach the tab, and run a short chunk. Resolve the absolute skill directory from the loaded SKILL.md; replace `<skill-dir>` below, never execute it literally.
 
 ```js
 var jev = await import('file://<skill-dir>/bridge.mjs');
+jev.attachTab(taskTab);
 var jevConfig = await jev.loadConfig();
 var session = jev.createSession(taskTab, {
   ...jevConfig,
