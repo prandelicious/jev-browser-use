@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>basic-click</title>
+  </head>
+  <body>
+    <button type="button" id="open">Open details</button>
+    <p id="details" hidden>DETAILS_OPEN</p>
+    <script>
+      document.getElementById('open').addEventListener('click', () => {
+        document.getElementById('details').hidden = false;
+      });
+    </script>
+  </body>
+</html>

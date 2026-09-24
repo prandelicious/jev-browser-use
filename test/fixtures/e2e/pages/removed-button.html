@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>removed-button</title>
+  </head>
+  <body>
+    <button type="button" id="remove-me">Remove me</button>
+    <script>
+      document.getElementById('remove-me').addEventListener('click', () => {
+        document.getElementById('remove-me').remove();
+      });
+    </script>
+  </body>
+</html>

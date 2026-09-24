@@ -1,0 +1,11 @@
+{
+  "recordedOn": "linux-cursor-cloud-agent",
+  "platform": "linux",
+  "bunVersion": "1.4.2",
+  "nodeVersion": "v26.3.0",
+  "chrome": "Google Chrome 148.0.7778.96",
+  "chromeDevtoolsMcp": "chrome-devtools-mcp@1.9.0",
+  "mcpSdk": "1.12.1",
+  "profileParentDir": "/tmp",
+  "chromeDevtoolsMcpPin": "1.9.0"
+}

@@ -70,6 +70,66 @@ function parseToolJson(result) {
   }
 }
 
+function extractListedPageUrl(raw) {
+  const trimmed = raw.trim();
+  const parenthetical = trimmed.match(/\((https?:\/\/[^)]+)\)/);
+  if (parenthetical) {
+    return parenthetical[1];
+  }
+  return trimmed;
+}
+
+/** @param {string} text */
+export function parseListPagesMarkdown(text) {
+  const pages = [];
+  if (typeof text !== 'string') return pages;
+  for (const line of text.split('\n')) {
+    const match = line.match(/^(\d+):\s+(.+?)(?:\s+\[selected\])?\s*$/);
+    if (!match) continue;
+    pages.push({
+      pageId: String(match[1]),
+      url: extractListedPageUrl(match[2]),
+    });
+  }
+  return pages;
+}
+
+function normalizePageId(pageId) {
+  if (typeof pageId === 'number' && Number.isFinite(pageId)) {
+    return String(pageId);
+  }
+  return pageId;
+}
+
+export function coerceMcpPageId(pageId) {
+  if (typeof pageId === 'string' && /^\d+$/.test(pageId)) {
+    return Number(pageId);
+  }
+  return pageId;
+}
+
+function normalizeToolPayload(toolName, payload) {
+  if (toolName === 'list_pages') {
+    if (Array.isArray(payload?.pages)) {
+      return {
+        pages: payload.pages.map((page) => ({
+          ...page,
+          pageId: normalizePageId(page.pageId),
+        })),
+      };
+    }
+    const raw = payload?.raw ?? '';
+    return { pages: parseListPagesMarkdown(raw) };
+  }
+  if (toolName === 'take_snapshot') {
+    const snapshot = payload?.snapshot ?? payload?.raw;
+    if (typeof snapshot === 'string') {
+      return { snapshot };
+    }
+  }
+  return payload;
+}
+
 /**
  * Owns one Chrome DevTools MCP child over stdio and tracks page binding state.
  */
@@ -107,7 +167,7 @@ export class ChromeDevtoolsSession {
   }
 
   isRunning() {
-    return Boolean(this.transport?.pid);
+    return Boolean(this.ownedChildPid);
   }
 
   async start() {
@@ -175,7 +235,7 @@ export class ChromeDevtoolsSession {
 
   async listPages() {
     const result = await this.#callTool('list_pages', {});
-    const pages = Array.isArray(result?.pages) ? result.pages : result;
+    const pages = Array.isArray(result?.pages) ? result.pages : null;
     if (!Array.isArray(pages)) {
       throw new ChromeSessionError('list_pages returned an unexpected shape', { code: 'tool_error' });
     }
@@ -184,7 +244,8 @@ export class ChromeDevtoolsSession {
 
   async bindPage(pageId, allowedOrigins = this.allowedOrigins) {
     const pages = await this.listPages();
-    const page = pages.find((entry) => entry.pageId === pageId);
+    const normalizedPageId = normalizePageId(pageId);
+    const page = pages.find((entry) => entry.pageId === normalizedPageId);
     if (!page) {
       throw new ChromeSessionError(`Unknown pageId: ${pageId}`, { code: 'wrong_page' });
     }
@@ -192,8 +253,8 @@ export class ChromeDevtoolsSession {
     if (!origin || !allowedOrigins.includes(origin)) {
       throw new ChromeSessionError('Browser left authorized origins', { code: 'wrong_origin' });
     }
-    await this.#callTool('select_page', { pageId });
-    this.boundPage = { pageId, url: page.url, origin };
+    await this.#callTool('select_page', { pageId: coerceMcpPageId(pageId) });
+    this.boundPage = { pageId: normalizedPageId, url: page.url, origin };
     return this.boundPage;
   }
 
@@ -226,7 +287,7 @@ export class ChromeDevtoolsSession {
         throw new ChromeSessionError('No page is bound', { code: 'unbound' });
       }
       await this.refreshBinding(allowedOrigins);
-      args = { ...args, pageId: this.boundPage.pageId };
+      args = { ...args, pageId: coerceMcpPageId(this.boundPage.pageId) };
     }
     return this.#callTool(name, args);
   }
@@ -245,7 +306,7 @@ export class ChromeDevtoolsSession {
           { code: 'tool_error' },
         );
       }
-      return parseToolJson(result);
+      return normalizeToolPayload(name, parseToolJson(result));
     } catch (error) {
       if (error?.name === 'TimeoutError') {
         throw new ChromeSessionError(`Chrome DevTools MCP tool timed out: ${name}`, {
