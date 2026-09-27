@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "recordedOn": "cursor-cloud-agent-linux",
+  "chromeDevtoolsMcpPin": "chrome-devtools-mcp@1.9.0",
+  "notes": "Slice 0 baseline placeholder. No live site browsing. Codex-path metrics require mcp__cua_repl.js (not attached). GUI Computer Use timings are not recorded here.",
+  "tasks": [
+    {
+      "id": "generic-property-projection-fixture",
+      "description": "Representative generic site projection task from test/fixtures/generic-property.ax.txt (existing-browser skill path; not re-run on a live site in slice 0).",
+      "verifiedCompletion": "unavailable",
+      "wallTimeMs": "unavailable",
+      "hostTurns": "unavailable",
+      "modelCost": "unavailable",
+      "handoffs": "unavailable",
+      "retries": "unavailable",
+      "unsafeAttempts": "unavailable"
+    },
+    {
+      "id": "agoda-property-incremental-state",
+      "description": "Representative Agoda incremental projection task from test/fixtures/agoda-property.ax.txt (Codex/CUA path baseline; mcp__cua_repl.js not attached on this VM).",
+      "verifiedCompletion": "unavailable",
+      "wallTimeMs": "unavailable",
+      "hostTurns": "unavailable",
+      "modelCost": "unavailable",
+      "handoffs": "unavailable",
+      "retries": "unavailable",
+      "unsafeAttempts": "unavailable"
+    },
+    {
+      "id": "host-only-manual-verification-loop",
+      "description": "Plain host browser use with host-owned final verification (comparison baseline for later slices; not measured in slice 0).",
+      "verifiedCompletion": "unavailable",
+      "wallTimeMs": "unavailable",
+      "hostTurns": "unavailable",
+      "modelCost": "unavailable",
+      "handoffs": "unavailable",
+      "retries": "unavailable",
+      "unsafeAttempts": "unavailable"
+    }
+  ]
+}
