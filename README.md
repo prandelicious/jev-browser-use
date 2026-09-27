@@ -17,7 +17,7 @@ A browser Skill powered by [TypeSafe’s Jev](https://docs.typesafe.ai/introduct
 **Codex — one command:**
 
 ```sh
-npx skills add wy-coliney/jev-browser-use -g -a codex -y
+npx skills add prandelicious/jev-browser-use -g -a codex -y
 ```
 
 Then [configure your Jev API](skills/jev-browser-use/references/provider-configuration.md) and start a new Codex task.
@@ -28,7 +28,7 @@ You need **Bun 1.1+** (Node.js 22+ also works), **Codex with Computer Use connec
 <summary><strong>Prefer the native Codex plugin?</strong></summary>
 
 ```sh
-codex plugin marketplace add wy-coliney/jev-browser-use && codex plugin add jev-browser-use@jev-browser-use
+codex plugin marketplace add prandelicious/jev-browser-use && codex plugin add jev-browser-use@jev-browser-use
 ```
 
 Requires a Codex CLI with `codex plugin` support. Restart Codex after installation. Alternatively, add the marketplace with the first command, then select **Jev Browser Use** in the desktop plugin directory.
@@ -44,7 +44,7 @@ Paste this into Codex:
 
 ```text
 Install Jev Browser Use following this guide:
-https://raw.githubusercontent.com/wy-coliney/jev-browser-use/main/INSTALL.md
+https://raw.githubusercontent.com/prandelicious/jev-browser-use/main/INSTALL.md
 Preserve existing configuration. Ask for my chosen provider and local
 credential file path if needed. Never ask me to paste an API key in chat.
 ```
@@ -55,13 +55,13 @@ credential file path if needed. Never ask me to paste an API key in chat.
 <summary><strong>Claude Code and other agents</strong></summary>
 
 ```sh
-npx skills add wy-coliney/jev-browser-use
+npx skills add prandelicious/jev-browser-use
 ```
 
 Choose an agent, or install directly into Claude Code:
 
 ```sh
-npx skills add wy-coliney/jev-browser-use -g -a claude-code -y
+npx skills add prandelicious/jev-browser-use -g -a claude-code -y
 ```
 
 **Claude Code browser support is coming soon.** The Skill can be installed now; browser execution currently requires the Codex Computer Use runtime.
@@ -72,7 +72,7 @@ npx skills add wy-coliney/jev-browser-use -g -a claude-code -y
 <summary><strong>Manual installation / ZIP</strong></summary>
 
 ```sh
-git clone https://github.com/wy-coliney/jev-browser-use.git
+git clone https://github.com/prandelicious/jev-browser-use.git
 cd jev-browser-use
 bun scripts/install.mjs
 ```
@@ -156,10 +156,10 @@ Also worth exploring: [Browser Use’s Jev Ultrafast](https://github.com/browser
 
 If this saves you a few hundred clicks, give it a star.
 
-<a href="https://www.star-history.com/?repos=wy-coliney%2Fjev-browser-use&amp;type=date&amp;legend=bottom-right">
+<a href="https://www.star-history.com/?repos=prandelicious%2Fjev-browser-use&amp;type=date&amp;legend=bottom-right">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=wy-coliney/jev-browser-use&amp;type=date&amp;theme=dark&amp;legend=bottom-right" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=wy-coliney/jev-browser-use&amp;type=date&amp;legend=bottom-right" />
-    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=wy-coliney/jev-browser-use&amp;type=date&amp;legend=bottom-right" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=prandelicious/jev-browser-use&amp;type=date&amp;theme=dark&amp;legend=bottom-right" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=prandelicious/jev-browser-use&amp;type=date&amp;legend=bottom-right" />
+    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=prandelicious/jev-browser-use&amp;type=date&amp;legend=bottom-right" />
   </picture>
 </a>
