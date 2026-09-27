@@ -1,3 +1,3 @@
-work/
 .lavish/
+work/*.jsonl
 node_modules/
