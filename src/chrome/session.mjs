@@ -16,7 +16,7 @@ export class ChromeSessionError extends Error {
   }
 }
 
-function resolveChromeDevtoolsLaunch() {
+export function resolveChromeDevtoolsLaunch() {
   assertPinIsExact();
   let binaryPath;
   try {
@@ -24,20 +24,18 @@ function resolveChromeDevtoolsLaunch() {
   } catch {
     binaryPath = null;
   }
-  const bin =
-    binaryPath
-      ? join(dirname(binaryPath), 'build/src/index.js')
-      : null;
+  const executablePath = process.env.CHROME_PATH?.trim();
+  const executableArgs = executablePath ? ['--executablePath', executablePath] : [];
   if (binaryPath) {
     const binEntry = join(dirname(binaryPath), 'build/src/bin/chrome-devtools-mcp.js');
     return {
       command: process.execPath,
-      args: [binEntry, '--isolated', '--headless', '--no-usage-statistics'],
+      args: [binEntry, '--isolated', '--headless', '--no-usage-statistics', ...executableArgs],
     };
   }
   return {
     command: 'npx',
-    args: [...CHROME_DEVTOOLS_MCP_PIN.launchArgv.slice(1)],
+    args: [...CHROME_DEVTOOLS_MCP_PIN.launchArgv.slice(1), ...executableArgs],
   };
 }
 

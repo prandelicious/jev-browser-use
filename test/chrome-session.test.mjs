@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { access } from 'node:fs/promises';
 import { CHROME_DEVTOOLS_MCP_PIN } from '../src/contract.mjs';
-import { ChromeDevtoolsSession } from '../src/chrome/session.mjs';
+import { ChromeDevtoolsSession, resolveChromeDevtoolsLaunch } from '../src/chrome/session.mjs';
 import { testPeerTransport } from './helpers/chrome-test-transport.mjs';
 import {
   ChromeActionPolicyError,
@@ -152,6 +152,20 @@ test('timeout: slow peer tool call fails with timeout', async () => {
   await session.start();
   await assert.rejects(() => session.listPages(), /timed out/);
   await session.stop();
+});
+
+test('CHROME_PATH selects the Chrome executable and is omitted when unset', () => {
+  const original = process.env.CHROME_PATH;
+  try {
+    delete process.env.CHROME_PATH;
+    assert.equal(resolveChromeDevtoolsLaunch().args.includes('--executablePath'), false);
+    process.env.CHROME_PATH = '  /custom/chrome  ';
+    const args = resolveChromeDevtoolsLaunch().args;
+    assert.deepEqual(args.slice(-2), ['--executablePath', '/custom/chrome']);
+  } finally {
+    if (original === undefined) delete process.env.CHROME_PATH;
+    else process.env.CHROME_PATH = original;
+  }
 });
 
 test('owned-process cleanup stops child and profile without killing unrelated Chrome', async () => {
