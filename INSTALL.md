@@ -21,11 +21,11 @@ Use `-a claude-code` only when the user requests Claude Code. Installation is su
 
 For manual installation and guided API setup:
 
-1. Check Node.js 22+ and Git are available.
+1. Check Bun 1.1+ (or Node.js 22+) and Git are available.
 2. Clone `https://github.com/wy-coliney/jev-browser-use.git` into a new temporary directory.
-3. From that checkout, run `node scripts/install.mjs --no-config`. This installs to `~/.agents/skills/jev-browser-use` without interactive prompts or changing existing settings.
+3. From that checkout, run `bun scripts/install.mjs --no-config` (or `node scripts/install.mjs --no-config`). This installs to `~/.agents/skills/jev-browser-use` without interactive prompts or changing existing settings.
 4. If `~/.config/jev-browser-use/config.json` already exists, preserve it. Otherwise, ask which provider the user wants (`typesafe` or `openrouter`) and the absolute path to their local credential dotenv file. Never ask for a key in chat or print the file.
-5. Configure using the installer's exported function, run from the checkout with `node --input-type=module`:
+5. Configure using the installer's exported function, run from the checkout with `bun --eval` (or `node --input-type=module`):
 
 ```js
 import { install } from './scripts/install.mjs';

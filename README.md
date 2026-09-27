@@ -22,7 +22,7 @@ npx skills add wy-coliney/jev-browser-use -g -a codex -y
 
 Then [configure your Jev API](skills/jev-browser-use/references/provider-configuration.md) and start a new Codex task.
 
-You need **Node.js 22+**, **Codex with Computer Use connected to Chrome or its in-app browser**, and **Jev access through TypeSafe or OpenRouter Decisions**. Installing this Skill does not install the browser connection.
+You need **Bun 1.1+** (Node.js 22+ also works), **Codex with Computer Use connected to Chrome or its in-app browser**, and **Jev access through TypeSafe or OpenRouter Decisions**. Installing this Skill does not install the browser connection.
 
 <details>
 <summary><strong>Prefer the native Codex plugin?</strong></summary>
@@ -74,10 +74,10 @@ npx skills add wy-coliney/jev-browser-use -g -a claude-code -y
 ```sh
 git clone https://github.com/wy-coliney/jev-browser-use.git
 cd jev-browser-use
-node scripts/install.mjs
+bun scripts/install.mjs
 ```
 
-Or extract the repository ZIP and run the same Node command. The installer asks for your provider, model, and local credential file path. Existing settings are preserved; credentials stay outside the Skill.
+Or extract the repository ZIP and run the same command. The installer asks for your provider, model, and local credential file path. Existing settings are preserved; credentials stay outside the Skill.
 
 </details>
 
@@ -140,7 +140,7 @@ Standard uncached API rates, checked September 18, 2026: [TypeSafe pricing](http
 - **Configuration:** [Choose your provider and connect your API](skills/jev-browser-use/references/provider-configuration.md). All installation methods share `~/.config/jev-browser-use/config.json`.
 - **npx updates:** `npx skills update jev-browser-use`.
 - **Plugin updates:** refresh with `codex plugin marketplace upgrade jev-browser-use`, reinstall with `codex plugin add jev-browser-use@jev-browser-use`, then restart Codex.
-- **Manual updates:** pull the repository and run `node scripts/install.mjs --no-config`.
+- **Manual updates:** pull the repository and run `bun scripts/install.mjs --no-config`.
 
 Browser workflows were exercised on macOS. Page text goes to your selected provider; only delegate data you authorize it to process. Keep credentials and private page content out of public issues. See the [full Skill](skills/jev-browser-use/SKILL.md) for runtime requirements and handoffs.
 
