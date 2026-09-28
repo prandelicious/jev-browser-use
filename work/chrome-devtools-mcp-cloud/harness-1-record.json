@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "harness": "cursor-cloud-agent-linux",
+  "product": "Cursor Cloud Agent (harness 1)",
+  "serverEntry": "src/mcp/server.mjs via test/helpers/jev-mcp-server-harness1-entry.mjs",
+  "chromeDevtoolsMcpPin": "chrome-devtools-mcp@1.9.0",
+  "fixture": "test/fixtures/e2e loopback HTTP (basic-click.html)",
+  "initialize": "ok",
+  "toolDiscovery": [
+    "run_browser_task"
+  ],
+  "runBrowserTask": {
+    "requestFields": [
+      "goal",
+      "allowedOrigins",
+      "page",
+      "maxActions",
+      "maxDurationMs"
+    ],
+    "resultStatus": "completed",
+    "metrics": {
+      "decisions": 2,
+      "actionsExecuted": 1,
+      "staleRetries": 0
+    }
+  },
+  "wallTimeMs": 1129,
+  "recordedOn": "linux-cursor-cloud-agent",
+  "bunVersion": "1.4.2",
+  "nodeVersion": "v26.3.0",
+  "chrome": "Google Chrome 148.0.7778.96",
+  "mcpSdk": "1.12.1"
+}

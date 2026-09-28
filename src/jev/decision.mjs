@@ -61,7 +61,12 @@ export function buildChoiceCriteria(permittedActions, { instructions = DEFAULT_D
 
 export function parseAxSnapshotUrl(snapshot) {
   if (typeof snapshot !== 'string') return null;
-  return snapshot.match(AX_URL_RE)?.[1] ?? null;
+  const legacy = snapshot.match(AX_URL_RE)?.[1];
+  if (legacy) return legacy;
+  const rootLine = snapshot.match(/RootWebArea[^\n]*url="([^"]+)"/);
+  if (rootLine) return rootLine[1];
+  const anyUrl = snapshot.match(/\burl="([^"]+)"/);
+  return anyUrl?.[1] ?? null;
 }
 
 export function originFromUrl(urlString) {

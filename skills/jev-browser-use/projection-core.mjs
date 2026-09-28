@@ -8,13 +8,29 @@ function termPattern(term) { return new RegExp(`(?<![a-z0-9])${escaped(term)}(?!
 
 function snapshotUrl(snapshot) {
   const header = snapshot.split('\n').find(line => line.startsWith('Browser tab:')) ?? '';
-  return header.match(/URL:\s*"([^"]+)"/)?.[1] ?? null;
+  const fromHeader = header.match(/URL:\s*"([^"]+)"/)?.[1];
+  if (fromHeader) return fromHeader;
+  const rootLine = snapshot.match(/RootWebArea[^\n]*url="([^"]+)"/)?.[1];
+  if (rootLine) return rootLine;
+  return snapshot.match(/\burl="([^"]+)"/)?.[1] ?? null;
+}
+
+function isLoopbackHttpOrigin(url) {
+  return (
+    url.protocol === 'http:' &&
+    (url.hostname === '127.0.0.1' || url.hostname === 'localhost' || url.hostname === '[::1]')
+  );
 }
 
 function originHeader(snapshot) {
   let url;
   try { url = new URL(snapshotUrl(snapshot)); } catch { throw new Error('Invalid origin projection input'); }
-  if (url.protocol !== 'https:') throw new Error('Invalid origin projection input');
+  if (url.protocol !== 'https:' && !isLoopbackHttpOrigin(url)) {
+    throw new Error('Invalid origin projection input');
+  }
+  if (isLoopbackHttpOrigin(url)) {
+    return `Browser tab: Loopback fixture (origin ${url.origin}).`;
+  }
   const labels = url.hostname.replace(/^www\./i, '').split('.');
   const label = labels.length > 1 ? labels.at(-2) : labels[0];
   const site = label ? `${label.charAt(0).toUpperCase()}${label.slice(1)}` : 'Site';

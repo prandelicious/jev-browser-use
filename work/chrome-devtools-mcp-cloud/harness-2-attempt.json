@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "recordedOn": "linux-cursor-cloud-agent",
+  "gate": "open",
+  "reason": "No second MCP host completed the slice 4 loopback fixture checklist on this VM.",
+  "attempts": [
+    {
+      "product": "Codex CLI",
+      "onPath": false,
+      "installAttempt": {
+        "command": "npx --yes @openai/codex --version",
+        "outcome": "success",
+        "version": "codex-cli 0.158.0"
+      },
+      "harnessRun": {
+        "command": "npx --yes @openai/codex doctor",
+        "outcome": "blocked",
+        "detail": "auth: no Codex credentials were found (codex login or API key required)"
+      }
+    },
+    {
+      "product": "Claude Code",
+      "onPath": false,
+      "installAttempt": {
+        "command": "npm install -g @anthropic-ai/claude-code",
+        "outcome": "failed",
+        "detail": "EACCES: global npm install rejected (permissions); not retried with sudo"
+      },
+      "harnessRun": {
+        "command": null,
+        "outcome": "not_attempted",
+        "detail": "CLI not available after install failure"
+      }
+    }
+  ],
+  "notes": "Harness 2 is not simulated. Slice 5 cross-harness gate remains open until a real second host passes the same fixture checklist."
+}
