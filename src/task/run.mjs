@@ -113,12 +113,21 @@ export function buildPermittedActionsFromSnapshot(
   const actions = [];
   if (allowedMechanicalActions.includes('semantic_click')) {
     for (const line of rawObservation.split('\n')) {
-      const match = line.match(/^(\d+) (button|link)\s+(.+)$/);
-      if (match) {
+      const chromeMcp = line.match(/^\s*uid=(\S+)\s+(button|link)\s+"([^"]+)"/);
+      if (chromeMcp) {
         actions.push({
           op: 'click',
-          uid: `uid-${match[1]}`,
-          description: `Click ${match[3].trim()}`,
+          uid: chromeMcp[1],
+          description: `Click ${chromeMcp[3].trim()}`,
+        });
+        continue;
+      }
+      const legacy = line.match(/^(\d+) (button|link)\s+(.+)$/);
+      if (legacy) {
+        actions.push({
+          op: 'click',
+          uid: `uid-${legacy[1]}`,
+          description: `Click ${legacy[3].trim()}`,
         });
       }
     }

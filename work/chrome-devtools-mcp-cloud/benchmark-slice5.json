@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "recordedOn": "linux-cursor-cloud-agent",
+  "chromeDevtoolsMcpPin": "chrome-devtools-mcp@1.9.0",
+  "notes": "Slice 5 harness-1 fixture benchmark on loopback only. Codex-path and host-only baselines are not measured on this VM.",
+  "tasks": [
+    {
+      "id": "harness-1-loopback-basic-click",
+      "description": "MCP client run_browser_task on basic-click.html via pinned isolated Chrome (harness 1).",
+      "verifiedCompletion": true,
+      "wallTimeMs": 1129,
+      "hostTurns": "unavailable",
+      "hostTurnsReason": "No host conversation loop; direct MCP tools/call from test client.",
+      "modelCost": "unavailable",
+      "modelCostReason": "Scripted decision provider; no billed model API.",
+      "handoffs": 0,
+      "retries": 0,
+      "unsafeAttempts": 0
+    },
+    {
+      "id": "generic-property-projection-fixture",
+      "description": "Slice 0 placeholder; not re-run on a live site in slice 5.",
+      "verifiedCompletion": "unavailable",
+      "verifiedCompletionReason": "Not in harness-1 scope.",
+      "wallTimeMs": "unavailable",
+      "wallTimeMsReason": "Not measured in slice 5.",
+      "hostTurns": "unavailable",
+      "modelCost": "unavailable",
+      "handoffs": "unavailable",
+      "retries": "unavailable",
+      "unsafeAttempts": "unavailable"
+    },
+    {
+      "id": "host-only-manual-verification-loop",
+      "description": "Comparison baseline; not measured on this VM in slice 5.",
+      "verifiedCompletion": "unavailable",
+      "verifiedCompletionReason": "Requires host-only browser loop.",
+      "wallTimeMs": "unavailable",
+      "hostTurns": "unavailable",
+      "modelCost": "unavailable",
+      "handoffs": "unavailable",
+      "retries": "unavailable",
+      "unsafeAttempts": "unavailable"
+    }
+  ]
+}

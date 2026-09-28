@@ -16,6 +16,7 @@ import {
   isMechanicalChoiceId,
   isRawObservationStale,
   mechanicalChoiceId,
+  parseAxSnapshotUrl,
   projectDecisionState,
   resolveMechanicalChoice,
   sanitizePublicDecisionStep,
@@ -132,6 +133,13 @@ test('retry budget allows transport retries only within remaining time', () => {
     }),
     false,
   );
+});
+
+test('parseAxSnapshotUrl accepts chrome-devtools-mcp 1.9.0 snapshot headers', () => {
+  const snapshot = `## Latest page snapshot
+uid=1_0 RootWebArea "basic-click" url="http://127.0.0.1:8080/basic-click.html"
+  uid=1_1 button "Open details"`;
+  assert.equal(parseAxSnapshotUrl(snapshot), 'http://127.0.0.1:8080/basic-click.html');
 });
 
 test('origin check fails closed outside allowed origins', () => {
