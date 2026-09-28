@@ -2,12 +2,8 @@
   "name": "jev-browser-use",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=22"
-  },
-  "scripts": {
-    "test": "bun test"
-  },
+  "engines": { "node": ">=22", "bun": ">=1.1" },
+  "scripts": { "test": "bun test" },
   "devDependencies": {
     "chrome-devtools-mcp": "1.9.0"
   },
